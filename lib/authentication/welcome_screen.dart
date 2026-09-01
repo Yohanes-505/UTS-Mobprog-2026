@@ -1,13 +1,10 @@
+import 'package:bumble/authentication/login_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
 
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
 
             const SizedBox(
-              height: 320
+              height: 200
             ),
 
             Image.asset(
@@ -50,6 +47,32 @@ class _LoginScreenState extends State<LoginScreen> {
                 fontSize: 16,
                 color: Colors.grey,
                 fontWeight: FontWeight.w500,
+              ),
+            ),
+            
+            const SizedBox(height: 35),
+
+            //button to login screen
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Get.to(() => const LoginScreen());
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Get Started",
+                    style: TextStyle(fontSize: 16, color: Colors.white),
+                  ),
+                ),
               ),
             ),
           ],
