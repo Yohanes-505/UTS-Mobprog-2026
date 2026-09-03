@@ -1,4 +1,4 @@
-enum Gender { male, female, nonBinary }
+enum Gender { male, female }
 
 class ProfileModel {
   final String id;
@@ -80,7 +80,7 @@ class ProfileModel {
     if (value == null) return null;
     return Gender.values.firstWhere(
       (g) => g.name == value,
-      orElse: () => Gender.nonBinary,
+      orElse: () => Gender.male,
     );
   }
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:bumble/constants/app_colors.dart';
+import 'package:bumble/models/profile_model.dart';
 
 /// Screen shown after sign up so the user can complete their profile.
 /// NOTE: This is UI-only for now — no Supabase logic wired yet.
@@ -13,6 +15,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final TextEditingController ageController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
+  Gender? selectedGender;
   bool isLoading = false;
 
   @override
@@ -20,6 +23,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     ageController.dispose();
     bioController.dispose();
     super.dispose();
+  }
+
+  String _genderLabel(Gender g) {
+    switch (g) {
+      case Gender.male:
+        return "Male";
+      case Gender.female:
+        return "Female";
+    }
   }
 
   @override
@@ -95,7 +107,33 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
               ),
 
-              // Gender selector will be added in the next commit.
+              const Text("Gender", style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 10,
+                children: Gender.values.map((g) {
+                  final isSelected = selectedGender == g;
+                  return ChoiceChip(
+                    label: Text(_genderLabel(g)),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() => selectedGender = g);
+                    },
+                    selectedColor: AppColors.primary,
+                    labelStyle: TextStyle(
+                      color: isSelected ? AppColors.onPrimary : Colors.black87,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    backgroundColor: Colors.grey.shade100,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? AppColors.primary : Colors.grey.shade300,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
 
               const SizedBox(height: 32),
 
@@ -107,7 +145,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     // Save logic wired in a later commit.
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC629),
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -116,13 +154,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.black),
+                          child: CircularProgressIndicator(color: AppColors.onPrimary),
                         )
                       : const Text(
                           "Continue",
                           style: TextStyle(
                             fontSize: 16,
-                            color: Colors.black,
+                            color: AppColors.onPrimary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
