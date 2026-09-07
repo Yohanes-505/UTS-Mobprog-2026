@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/subscription_tier.dart';
+import '../../services/subscription_service.dart';
+import 'payment_webview_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -10,7 +12,10 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  final SubscriptionService _subscriptionService = SubscriptionService();
+
   String _selectedTierId = 'plus';
+  bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -160,15 +165,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: _selectedTierId == 'basic'
+                  onPressed: (_selectedTierId == 'basic' || _isProcessing)
                       ? null
-                      : () => _onSubscribePressed(context),
-                  child: Text(
-                    _selectedTierId == 'basic'
-                        ? 'Pilih Plus atau Premium'
-                        : 'Lanjut ke Pembayaran',
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                      : _onSubscribePressed,
+                  child: _isProcessing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          _selectedTierId == 'basic'
+                              ? 'Pilih Plus atau Premium'
+                              : 'Lanjut ke Pembayaran',
+                          style: const TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ),
             ),
@@ -178,12 +192,42 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  void _onSubscribePressed(BuildContext context) {
-    final tier = SubscriptionTier.all.firstWhere((t) => t.id == _selectedTierId);
-    Get.snackbar(
-      'Checkout',
-      '${tier.name} (${tier.formattedPrice}) — pembayaran belum aktif',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> _onSubscribePressed() async {
+    setState(() => _isProcessing = true);
+
+    try {
+      // 1. Minta Snap Token dari Edge Function
+      final result = await _subscriptionService.createTransaction(_selectedTierId);
+
+      if (!mounted) return;
+
+      // 2. Buka halaman pembayaran Midtrans (WebView)
+      final paymentFinished = await Get.to<bool>(
+        () => PaymentWebviewScreen(
+          redirectUrl: result.redirectUrl,
+          orderId: result.orderId,
+        ),
+      );
+
+      if (!mounted) return;
+
+      // 3. Setelah user selesai/keluar dari halaman pembayaran
+      if (paymentFinished == true) {
+        Get.snackbar(
+          'Pembayaran Diproses',
+          'Status subscription akan otomatis diperbarui setelah pembayaran dikonfirmasi.',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Gagal',
+        'Terjadi kesalahan: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 }
