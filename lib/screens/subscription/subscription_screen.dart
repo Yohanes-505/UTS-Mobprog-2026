@@ -15,7 +15,7 @@ class SubscriptionScreen extends StatefulWidget {
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   final SubscriptionService _subscriptionService = SubscriptionService();
 
-  String _selectedTierId = 'plus';
+  String _selectedTierId = 'premium';
   bool _isProcessing = false;
   bool _isLoadingStatus = true;
   Map<String, dynamic>? _activeSubscription; // null = belum ada / basic
@@ -209,7 +209,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     backgroundColor: Colors.purple,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: (_selectedTierId == 'basic' ||
+                  onPressed: (_selectedTierId == 'free' ||
                           _isProcessing ||
                           (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId))
                       ? null
@@ -234,7 +234,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   String _buttonLabel(bool hasActiveSub) {
-    if (_selectedTierId == 'basic') return 'Pilih Plus atau Premium';
+    if (_selectedTierId == 'free') return 'Pilih Premium atau VIP';
     if (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId) {
       return 'Paket Ini Sudah Aktif';
     }

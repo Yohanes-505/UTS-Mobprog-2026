@@ -1,13 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const MIDTRANS_SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY")!;
+const IS_PRODUCTION = Deno.env.get("MIDTRANS_IS_PRODUCTION") === "true";
 
-// 2. Hardcode URL Sandbox (agar dijamin 100% tidak lari ke server Production)
-const MIDTRANS_SNAP_URL = "https://app.sandbox.midtrans.com/snap/v1/transactions";
+const MIDTRANS_SNAP_URL = IS_PRODUCTION
+  ? "https://app.midtrans.com/snap/v1/transactions"
+  : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
+// Harga tier didefinisikan ULANG di sini (bukan cuma di Flutter),
+// supaya harga yang dikirim ke Midtrans tidak bisa dimanipulasi dari client.
 const TIER_PRICES: Record<string, number> = {
-  plus: 29000,
-  premium: 59000,
+  premium: 29000,
+  vip: 59000,
 };
 
 Deno.serve(async (req) => {
@@ -19,7 +23,7 @@ Deno.serve(async (req) => {
     const { tier } = await req.json();
 
     if (!tier || !TIER_PRICES[tier]) {
-      return jsonResponse({ error: "Tier tidak valid." }, 400);
+      return jsonResponse({ error: "Tier tidak valid. Gunakan 'premium' atau 'vip'." }, 400);
     }
 
     const authHeader = req.headers.get("Authorization");
@@ -52,6 +56,7 @@ Deno.serve(async (req) => {
     });
 
     if (insertError) {
+      console.error("Insert transaction error:", insertError);
       return jsonResponse({ error: "Gagal menyimpan transaksi" }, 500);
     }
 
@@ -62,17 +67,14 @@ Deno.serve(async (req) => {
       },
       credit_card: { secure: true },
       customer_details: {
-        // Fallback email jika user auth belum punya email agar tidak ditolak Midtrans
-        email: userData.user.email || "tester@datingapp.com",
-        first_name: "DatingApp",
-        last_name: "User"
+        email: userData.user.email,
       },
       item_details: [
         {
           id: tier,
           price: amount,
           quantity: 1,
-          name: `Langganan - ${tier.toUpperCase()}`,
+          name: `Bumble Subscription - ${tier.toUpperCase()}`,
         },
       ],
     };
@@ -96,8 +98,7 @@ Deno.serve(async (req) => {
         .from("transactions")
         .update({ payment_status: "deny", midtrans_response: midtransResult })
         .eq("order_id", orderId);
-      // Kirim balik error asli dari Midtrans supaya kelihatan di HP jika masih gagal
-      return jsonResponse({ error: `Midtrans: ${midtransResult.error_messages?.[0] || 'Gagal'}` }, 500);
+      return jsonResponse({ error: "Gagal membuat transaksi Midtrans" }, 500);
     }
 
     await supabase
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("Unexpected error:", err);
-    return jsonResponse({ error: "Terjadi kesalahan sistem" }, 500);
+    return jsonResponse({ error: "Terjadi kesalahan tak terduga" }, 500);
   }
 });
 
