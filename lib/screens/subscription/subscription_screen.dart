@@ -1,9 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/subscription_tier.dart';
 import '../../services/subscription_service.dart';
 import 'payment_webview_screen.dart';
+import 'transaction_history_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -18,7 +18,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   String _selectedTierId = 'premium';
   bool _isProcessing = false;
   bool _isLoadingStatus = true;
-  Map<String, dynamic>? _activeSubscription; // null = belum ada / basic
+  Map<String, dynamic>? _activeSubscription;
 
   @override
   void initState() {
@@ -30,7 +30,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     setState(() => _isLoadingStatus = true);
     try {
       final sub = await _subscriptionService.getMySubscription();
-      // Anggap aktif hanya kalau status 'active' DAN belum lewat expires_at
       final isStillActive = sub != null &&
           sub['status'] == 'active' &&
           sub['expires_at'] != null &&
@@ -64,6 +63,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'Pilih Paket',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long_outlined),
+            tooltip: 'Riwayat Transaksi',
+            onPressed: () => Get.to(() => const TransactionHistoryScreen()),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -119,10 +125,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                               children: [
                                 Text(
                                   tier.name,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
                                 if (isCurrentActiveTier) ...[
                                   const SizedBox(width: 8),
@@ -156,9 +159,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                   isFree
                                       ? Icons.check_circle
                                       : (isSelected ? Icons.check_circle : Icons.circle_outlined),
-                                  color: isFree
-                                      ? Colors.grey
-                                      : (isSelected ? Colors.purple : Colors.grey),
+                                  color: isFree ? Colors.grey : (isSelected ? Colors.purple : Colors.grey),
                                   size: 22,
                                 ),
                               ],
@@ -182,10 +183,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     const Icon(Icons.check, size: 16, color: Colors.purple),
                                     const SizedBox(width: 8),
                                     Expanded(
-                                      child: Text(
-                                        f,
-                                        style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                      ),
+                                      child: Text(f, style: const TextStyle(fontSize: 13, color: Colors.black87)),
                                     ),
                                   ],
                                 ),
@@ -220,10 +218,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           height: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : Text(
-                          _buttonLabel(hasActiveSub),
-                          style: const TextStyle(fontSize: 16, color: Colors.white),
-                        ),
+                      : Text(_buttonLabel(hasActiveSub), style: const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ),
@@ -246,6 +241,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final expiresAt = DateTime.parse(_activeSubscription!['expires_at']);
     final tierName = SubscriptionTier.all.firstWhere((t) => t.id == tier).name;
     final formattedDate = "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
+    final isCancelled = _activeSubscription!['status'] == 'cancelled';
 
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -255,24 +251,86 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.purple.shade100),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.workspace_premium, color: Colors.purple),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Kamu berlangganan $tierName, aktif sampai $formattedDate',
-              style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
-            ),
+          Row(
+            children: [
+              const Icon(Icons.workspace_premium, color: Colors.purple),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Kamu berlangganan $tierName, aktif sampai $formattedDate',
+                  style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
           ),
+          if (!isCancelled) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _isProcessing ? null : _onCancelPressed,
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Batalkan Langganan', style: TextStyle(fontSize: 12)),
+              ),
+            ),
+          ] else
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Langganan dibatalkan, akan berhenti otomatis setelah tanggal di atas.',
+                style: TextStyle(fontSize: 11, color: Colors.red),
+              ),
+            ),
         ],
       ),
     );
   }
 
+  Future<void> _onCancelPressed() async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        title: const Text('Batalkan Langganan?'),
+        content: const Text(
+          'Kamu tetap bisa pakai fitur premium sampai masa aktif berakhir, tapi tidak akan diperpanjang otomatis.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('Ya, Batalkan', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      await _subscriptionService.cancelSubscription();
+      await _loadCurrentSubscription();
+      Get.snackbar(
+        'Berhasil',
+        'Langganan sudah dibatalkan.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Gagal',
+        'Tidak bisa membatalkan langganan: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Future<void> _onSubscribePressed() async {
     setState(() => _isProcessing = true);
-
     try {
       final result = await _subscriptionService.createTransaction(_selectedTierId);
       if (!mounted) return;
@@ -282,7 +340,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       );
 
       if (!mounted) return;
-
       if (paymentFinished == true) {
         await _pollForSubscriptionUpdate();
       }

@@ -16,15 +16,9 @@ class SubscriptionService {
   final SupabaseClient _client = Supabase.instance.client;
 
   Future<SubscriptionCheckoutResult> createTransaction(String tier) async {
-     final user = _client.auth.currentUser;
-    if (user == null) {
-      throw Exception('Sesi habis. Silakan login ulang.');
-    }
-
     final response = await _client.functions.invoke(
       'create-transaction',
       body: {'tier': tier},
-      abortSignal: Future.delayed(const Duration(seconds: 10)),
     );
 
     if (response.status != 200) {
@@ -54,5 +48,22 @@ class SubscriptionService {
         .maybeSingle();
 
     return data;
+  }
+
+  Future<void> cancelSubscription() async {
+    await _client.rpc('cancel_subscription');
+  }
+
+  Future<List<Map<String, dynamic>>> getTransactionHistory() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _client
+        .from('transactions')
+        .select()
+        .eq('user_id', userId)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(data);
   }
 }
