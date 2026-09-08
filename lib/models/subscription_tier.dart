@@ -1,5 +1,5 @@
 class SubscriptionTier {
-  final String id; 
+  final String id;  
   final String name;
   final int priceMonthly; 
   final List<String> features;
@@ -22,37 +22,38 @@ class SubscriptionTier {
     return 'Rp $formatted/bulan';
   }
 
-
-  static const List<SubscriptionTier> all = [
+   static const List<SubscriptionTier> all = [
     SubscriptionTier(
-      id: 'basic',
-      name: 'Basic',
+      id: 'free',
+      name: 'Free',
       priceMonthly: 0,
       features: [
-        'Swipe terbatas per hari',
-        'Chat dengan match',
-        'Profil dasar',
+        'Swipe terbatas (~20 like/hari)',
+        'Like & Match',
+        'Ganti lokasi manual',
       ],
-    ),
-    SubscriptionTier(
-      id: 'plus',
-      name: 'Plus',
-      priceMonthly: 29000,
-      features: [
-        'Unlimited swipe',
-        'Lihat siapa yang like kamu',
-        'Chat dengan match',
-      ],
-      isPopular: true,
     ),
     SubscriptionTier(
       id: 'premium',
       name: 'Premium',
+      priceMonthly: 29000,
+      features: [
+        'Unlimited swipe',
+        'Lihat siapa yang like kamu',
+        'Boost profil',
+        'Rewind swipe',
+      ],
+      isPopular: true,
+    ),
+    SubscriptionTier(
+      id: 'vip',
+      name: 'VIP',
       priceMonthly: 59000,
       features: [
-        'Semua fitur Plus',
-        'Boost profil (lebih sering muncul)',
-        'Rewind swipe (batalkan swipe terakhir)',
+        'Semua fitur Premium',
+        'Lihat siapa yang view profil kamu',
+        'Prioritas di swipe/match',
+        'Verifikasi profil (centang biru)',
       ],
     ),
   ];
