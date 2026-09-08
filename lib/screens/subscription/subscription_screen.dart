@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/subscription_tier.dart';
@@ -16,9 +17,40 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   String _selectedTierId = 'plus';
   bool _isProcessing = false;
+  bool _isLoadingStatus = true;
+  Map<String, dynamic>? _activeSubscription; // null = belum ada / basic
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentSubscription();
+  }
+
+  Future<void> _loadCurrentSubscription() async {
+    setState(() => _isLoadingStatus = true);
+    try {
+      final sub = await _subscriptionService.getMySubscription();
+      // Anggap aktif hanya kalau status 'active' DAN belum lewat expires_at
+      final isStillActive = sub != null &&
+          sub['status'] == 'active' &&
+          sub['expires_at'] != null &&
+          DateTime.parse(sub['expires_at']).isAfter(DateTime.now());
+
+      setState(() {
+        _activeSubscription = isStillActive ? sub : null;
+        if (isStillActive) _selectedTierId = sub['tier'];
+      });
+    } catch (_) {
+      // Kalau gagal load status, biarkan saja tanpa banner (bukan fatal)
+    } finally {
+      if (mounted) setState(() => _isLoadingStatus = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final hasActiveSub = _activeSubscription != null;
+
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
@@ -36,6 +68,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            if (_isLoadingStatus)
+              const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: LinearProgressIndicator(color: Colors.purple, minHeight: 2),
+              ),
+            if (hasActiveSub) _buildActiveSubscriptionBanner(),
             const Padding(
               padding: EdgeInsets.fromLTRB(24, 4, 24, 16),
               child: Align(
@@ -54,6 +92,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   final tier = SubscriptionTier.all[index];
                   final isSelected = tier.id == _selectedTierId;
                   final isFree = tier.priceMonthly == 0;
+                  final isCurrentActiveTier =
+                      hasActiveSub && _activeSubscription!['tier'] == tier.id;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
@@ -84,24 +124,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                if (tier.isPopular) ...[
+                                if (isCurrentActiveTier) ...[
                                   const SizedBox(width: 8),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(20),
                                     ),
+                                    child: const Text(
+                                      'AKTIF',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                  ),
+                                ] else if (tier.isPopular) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: Colors.purple,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'POPULER',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
                                     ),
                                   ),
                                 ],
@@ -161,26 +207,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.purple,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: (_selectedTierId == 'basic' || _isProcessing)
+                  onPressed: (_selectedTierId == 'basic' ||
+                          _isProcessing ||
+                          (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId))
                       ? null
                       : _onSubscribePressed,
                   child: _isProcessing
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
                       : Text(
-                          _selectedTierId == 'basic'
-                              ? 'Pilih Plus atau Premium'
-                              : 'Lanjut ke Pembayaran',
+                          _buttonLabel(hasActiveSub),
                           style: const TextStyle(fontSize: 16, color: Colors.white),
                         ),
                 ),
@@ -192,32 +233,58 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  String _buttonLabel(bool hasActiveSub) {
+    if (_selectedTierId == 'basic') return 'Pilih Plus atau Premium';
+    if (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId) {
+      return 'Paket Ini Sudah Aktif';
+    }
+    return 'Lanjut ke Pembayaran';
+  }
+
+  Widget _buildActiveSubscriptionBanner() {
+    final tier = _activeSubscription!['tier'] as String;
+    final expiresAt = DateTime.parse(_activeSubscription!['expires_at']);
+    final tierName = SubscriptionTier.all.firstWhere((t) => t.id == tier).name;
+    final formattedDate = "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.purple.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.shade100),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.workspace_premium, color: Colors.purple),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Kamu berlangganan $tierName, aktif sampai $formattedDate',
+              style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _onSubscribePressed() async {
     setState(() => _isProcessing = true);
 
     try {
-      // 1. Minta Snap Token dari Edge Function
       final result = await _subscriptionService.createTransaction(_selectedTierId);
-
       if (!mounted) return;
 
-      // 2. Buka halaman pembayaran Midtrans (WebView)
       final paymentFinished = await Get.to<bool>(
-        () => PaymentWebviewScreen(
-          redirectUrl: result.redirectUrl,
-          orderId: result.orderId,
-        ),
+        () => PaymentWebviewScreen(redirectUrl: result.redirectUrl, orderId: result.orderId),
       );
 
       if (!mounted) return;
 
-      // 3. Setelah user selesai/keluar dari halaman pembayaran
       if (paymentFinished == true) {
-        Get.snackbar(
-          'Pembayaran Diproses',
-          'Status subscription akan otomatis diperbarui setelah pembayaran dikonfirmasi.',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        await _pollForSubscriptionUpdate();
       }
     } catch (e) {
       Get.snackbar(
@@ -229,5 +296,47 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  Future<void> _pollForSubscriptionUpdate() async {
+    Get.snackbar(
+      'Memeriksa Status',
+      'Menunggu konfirmasi pembayaran...',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 2),
+    );
+
+    const maxAttempts = 6;
+    const delay = Duration(seconds: 3);
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      await Future.delayed(delay);
+      if (!mounted) return;
+
+      final sub = await _subscriptionService.getMySubscription();
+      final isNowActive = sub != null &&
+          sub['status'] == 'active' &&
+          sub['tier'] == _selectedTierId &&
+          sub['expires_at'] != null &&
+          DateTime.parse(sub['expires_at']).isAfter(DateTime.now());
+
+      if (isNowActive) {
+        setState(() => _activeSubscription = sub);
+        Get.snackbar(
+          'Berhasil!',
+          'Paket ${sub['tier']} sekarang aktif.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+        );
+        return;
+      }
+    }
+
+    Get.snackbar(
+      'Belum Terkonfirmasi',
+      'Status pembayaran belum berubah. Coba cek lagi beberapa saat lagi.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange.shade100,
+    );
   }
 }
