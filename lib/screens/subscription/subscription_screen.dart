@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/subscription_tier.dart';
 import '../../services/subscription_service.dart';
-import 'payment_webview_screen.dart';
 import 'transaction_history_screen.dart';
+import 'topup_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -19,11 +19,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isProcessing = false;
   bool _isLoadingStatus = true;
   Map<String, dynamic>? _activeSubscription;
+  int _walletBalance = 0;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentSubscription();
+    _loadWalletBalance();
   }
 
   Future<void> _loadCurrentSubscription() async {
@@ -40,9 +42,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         if (isStillActive) _selectedTierId = sub['tier'];
       });
     } catch (_) {
-      // Kalau gagal load status, biarkan saja tanpa banner (bukan fatal)
+      // bukan fatal
     } finally {
       if (mounted) setState(() => _isLoadingStatus = false);
+    }
+  }
+
+  Future<void> _loadWalletBalance() async {
+    try {
+      final balance = await _subscriptionService.getWalletBalance();
+      if (mounted) setState(() => _walletBalance = balance);
+    } catch (_) {
+      // bukan fatal
     }
   }
 
@@ -55,15 +66,36 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: const Text(
-          'Pilih Paket',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-        ),
+        leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
+        title: const Text('Pilih Paket', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
         actions: [
+          GestureDetector(
+            onTap: () async {
+              final topUpDone = await Get.to<bool>(() => const TopUpScreen());
+              if (topUpDone == true) _loadWalletBalance();
+            },
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.purple.shade50,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Colors.purple),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Rp ${_formatRupiah(_walletBalance)}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.purple),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.receipt_long_outlined),
             tooltip: 'Riwayat Transaksi',
@@ -98,15 +130,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   final tier = SubscriptionTier.all[index];
                   final isSelected = tier.id == _selectedTierId;
                   final isFree = tier.priceMonthly == 0;
-                  final isCurrentActiveTier =
-                      hasActiveSub && _activeSubscription!['tier'] == tier.id;
+                  final isCurrentActiveTier = hasActiveSub && _activeSubscription!['tier'] == tier.id;
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: GestureDetector(
-                      onTap: isFree
-                          ? null
-                          : () => setState(() => _selectedTierId = tier.id),
+                      onTap: isFree ? null : () => setState(() => _selectedTierId = tier.id),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         padding: const EdgeInsets.all(20),
@@ -123,42 +152,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           children: [
                             Row(
                               children: [
-                                Text(
-                                  tier.name,
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                ),
+                                Text(tier.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                 if (isCurrentActiveTier) ...[
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'AKTIF',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                                    ),
+                                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)),
+                                    child: const Text('AKTIF', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                                   ),
                                 ] else if (tier.isPopular) ...[
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.purple,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'POPULER',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                                    ),
+                                    decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(20)),
+                                    child: const Text('POPULER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                                   ),
                                 ],
                                 const Spacer(),
                                 Icon(
-                                  isFree
-                                      ? Icons.check_circle
-                                      : (isSelected ? Icons.check_circle : Icons.circle_outlined),
+                                  isFree ? Icons.check_circle : (isSelected ? Icons.check_circle : Icons.circle_outlined),
                                   color: isFree ? Colors.grey : (isSelected ? Colors.purple : Colors.grey),
                                   size: 22,
                                 ),
@@ -167,11 +179,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             const SizedBox(height: 4),
                             Text(
                               tier.formattedPrice,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: isFree ? Colors.grey : Colors.black87,
-                              ),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isFree ? Colors.grey : Colors.black87),
                             ),
                             const SizedBox(height: 12),
                             ...tier.features.map(
@@ -182,9 +190,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                   children: [
                                     const Icon(Icons.check, size: 16, color: Colors.purple),
                                     const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(f, style: const TextStyle(fontSize: 13, color: Colors.black87)),
-                                    ),
+                                    Expanded(child: Text(f, style: const TextStyle(fontSize: 13, color: Colors.black87))),
                                   ],
                                 ),
                               ),
@@ -213,11 +219,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       ? null
                       : _onSubscribePressed,
                   child: _isProcessing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : Text(_buttonLabel(hasActiveSub), style: const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
@@ -230,10 +232,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   String _buttonLabel(bool hasActiveSub) {
     if (_selectedTierId == 'free') return 'Pilih Premium atau VIP';
-    if (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId) {
-      return 'Paket Ini Sudah Aktif';
-    }
-    return 'Lanjut ke Pembayaran';
+    if (hasActiveSub && _activeSubscription!['tier'] == _selectedTierId) return 'Paket Ini Sudah Aktif';
+    return 'Beli dengan Saldo';
   }
 
   Widget _buildActiveSubscriptionBanner() {
@@ -294,14 +294,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       AlertDialog(
         title: const Text('Batalkan Langganan?'),
         content: const Text(
-          'Kamu tetap bisa pakai fitur premium sampai masa aktif berakhir, tapi tidak akan diperpanjang otomatis.',
+          'Sisa masa aktif akan dikonversi jadi saldo di akun kamu. Kamu tetap bisa pakai fitur premium sampai masa aktif berakhir.',
         ),
         actions: [
           TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: const Text('Ya, Batalkan', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Get.back(result: true), child: const Text('Ya, Batalkan', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -310,20 +307,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     setState(() => _isProcessing = true);
     try {
-      await _subscriptionService.cancelSubscription();
+      final refundAmount = await _subscriptionService.cancelSubscription();
       await _loadCurrentSubscription();
+      await _loadWalletBalance();
       Get.snackbar(
         'Berhasil',
-        'Langganan sudah dibatalkan.',
+        refundAmount > 0
+            ? 'Langganan dibatalkan. Rp ${_formatRupiah(refundAmount)} saldo ditambahkan ke akun kamu.'
+            : 'Langganan sudah dibatalkan.',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
       );
     } catch (e) {
-      Get.snackbar(
-        'Gagal',
-        'Tidak bisa membatalkan langganan: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
-      );
+      Get.snackbar('Gagal', 'Tidak bisa membatalkan langganan: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -332,68 +329,51 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _onSubscribePressed() async {
     setState(() => _isProcessing = true);
     try {
-      final result = await _subscriptionService.createTransaction(_selectedTierId);
-      if (!mounted) return;
+      final result = await _subscriptionService.purchaseWithWallet(_selectedTierId);
 
-      final paymentFinished = await Get.to<bool>(
-        () => PaymentWebviewScreen(redirectUrl: result.redirectUrl, orderId: result.orderId),
-      );
+      if (result.success) {
+        await _loadCurrentSubscription();
+        await _loadWalletBalance();
+        Get.snackbar(
+          'Berhasil!',
+          'Paket ${result.tier} sekarang aktif.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+        );
+      } else {
+        // Saldo tidak cukup -> tawarkan top up
+        final shortfall = (result.required ?? 0) - (result.currentBalance ?? 0);
+        final wantsTopUp = await Get.dialog<bool>(
+          AlertDialog(
+            title: const Text('Saldo Tidak Cukup'),
+            content: Text(
+              'Saldo kamu Rp ${_formatRupiah(result.currentBalance ?? 0)}, dibutuhkan Rp ${_formatRupiah(result.required ?? 0)}. '
+              'Kurang Rp ${_formatRupiah(shortfall)}. Mau top up sekarang?',
+            ),
+            actions: [
+              TextButton(onPressed: () => Get.back(result: false), child: const Text('Nanti')),
+              TextButton(onPressed: () => Get.back(result: true), child: const Text('Top Up')),
+            ],
+          ),
+        );
 
-      if (!mounted) return;
-      if (paymentFinished == true) {
-        await _pollForSubscriptionUpdate();
+        if (wantsTopUp == true) {
+          final topUpDone = await Get.to<bool>(() => const TopUpScreen());
+          if (topUpDone == true) await _loadWalletBalance();
+        }
       }
     } catch (e) {
-      Get.snackbar(
-        'Gagal',
-        'Terjadi kesalahan: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
-      );
+      Get.snackbar('Gagal', 'Terjadi kesalahan: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
-  Future<void> _pollForSubscriptionUpdate() async {
-    Get.snackbar(
-      'Memeriksa Status',
-      'Menunggu konfirmasi pembayaran...',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 2),
-    );
-
-    const maxAttempts = 6;
-    const delay = Duration(seconds: 3);
-
-    for (var attempt = 0; attempt < maxAttempts; attempt++) {
-      await Future.delayed(delay);
-      if (!mounted) return;
-
-      final sub = await _subscriptionService.getMySubscription();
-      final isNowActive = sub != null &&
-          sub['status'] == 'active' &&
-          sub['tier'] == _selectedTierId &&
-          sub['expires_at'] != null &&
-          DateTime.parse(sub['expires_at']).isAfter(DateTime.now());
-
-      if (isNowActive) {
-        setState(() => _activeSubscription = sub);
-        Get.snackbar(
-          'Berhasil!',
-          'Paket ${sub['tier']} sekarang aktif.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
-        );
-        return;
-      }
-    }
-
-    Get.snackbar(
-      'Belum Terkonfirmasi',
-      'Status pembayaran belum berubah. Coba cek lagi beberapa saat lagi.',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.orange.shade100,
+  String _formatRupiah(int amount) {
+    return amount.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]}.',
     );
   }
 }
