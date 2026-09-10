@@ -15,7 +15,6 @@ Deno.serve(async (req) => {
       transaction_status,
     } = notification;
 
-    // 1. Verifikasi signature: sha512(order_id + status_code + gross_amount + server_key)
     const raw = `${order_id}${status_code}${gross_amount}${MIDTRANS_SERVER_KEY}`;
     const expectedSignature = await sha512Hex(raw);
 
@@ -29,7 +28,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // 2. Ambil transaksi terkait dari database
     const { data: trx, error: trxError } = await supabase
       .from("transactions")
       .select("*")
@@ -41,8 +39,6 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Transaction not found" }, 404);
     }
 
-    // 3. Map status Midtrans -> status internal kita
-    // ('capture' dengan fraud_status 'accept' juga dianggap sukses, seperti settlement)
     let newStatus = trx.payment_status;
     if (transaction_status === "settlement" || transaction_status === "capture") {
       newStatus = "settlement";
@@ -61,37 +57,38 @@ Deno.serve(async (req) => {
       })
       .eq("order_id", order_id);
 
-    // 4. Kalau pembayaran sukses, aktifkan subscription user selama 30 hari
-    if (newStatus === "settlement") {
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 30);
+    // Hindari nambah saldo dua kali kalau Midtrans kirim notifikasi
+    // berulang untuk order_id yang sama (settlement dikirim lebih dari sekali)
+    const alreadyCredited = trx.payment_status === "settlement";
 
-      // Cek dulu apakah user sudah punya baris subscription
-      const { data: existingSub } = await supabase
-        .from("subscriptions")
-        .select("id")
+    if (newStatus === "settlement" && !alreadyCredited && trx.type === "topup") {
+      const { data: existingWallet } = await supabase
+        .from("wallets")
+        .select("balance")
         .eq("user_id", trx.user_id)
         .maybeSingle();
 
-      if (existingSub) {
+      if (existingWallet) {
         await supabase
-          .from("subscriptions")
+          .from("wallets")
           .update({
-            tier: trx.tier,
-            status: "active",
-            started_at: new Date().toISOString(),
-            expires_at: expiresAt.toISOString(),
+            balance: existingWallet.balance + trx.amount,
             updated_at: new Date().toISOString(),
           })
           .eq("user_id", trx.user_id);
       } else {
-        await supabase.from("subscriptions").insert({
+        await supabase.from("wallets").insert({
           user_id: trx.user_id,
-          tier: trx.tier,
-          status: "active",
-          expires_at: expiresAt.toISOString(),
+          balance: trx.amount,
         });
       }
+
+      await supabase.from("wallet_transactions").insert({
+        user_id: trx.user_id,
+        type: "topup_credit",
+        amount: trx.amount,
+        description: `Top up via Midtrans (order ${order_id})`,
+      });
     }
 
     return jsonResponse({ received: true });

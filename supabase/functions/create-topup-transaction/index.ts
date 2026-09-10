@@ -7,12 +7,8 @@ const MIDTRANS_SNAP_URL = IS_PRODUCTION
   ? "https://app.midtrans.com/snap/v1/transactions"
   : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
-// Harga tier didefinisikan ULANG di sini (bukan cuma di Flutter),
-// supaya harga yang dikirim ke Midtrans tidak bisa dimanipulasi dari client.
-const TIER_PRICES: Record<string, number> = {
-  premium: 29000,
-  vip: 59000,
-};
+const MIN_TOPUP = 10000;
+const MAX_TOPUP = 5000000;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,10 +16,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { tier } = await req.json();
+    const { amount } = await req.json();
 
-    if (!tier || !TIER_PRICES[tier]) {
-      return jsonResponse({ error: "Tier tidak valid. Gunakan 'premium' atau 'vip'." }, 400);
+    if (!amount || typeof amount !== "number" || amount < MIN_TOPUP || amount > MAX_TOPUP) {
+      return jsonResponse(
+        { error: `Jumlah top up harus antara Rp ${MIN_TOPUP} - Rp ${MAX_TOPUP}` },
+        400,
+      );
     }
 
     const authHeader = req.headers.get("Authorization");
@@ -44,13 +43,13 @@ Deno.serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    const amount = TIER_PRICES[tier];
-    const orderId = `SUB-${tier.toUpperCase()}-${userId.slice(0, 8)}-${Date.now()}`;
+    const orderId = `TOPUP-${userId.slice(0, 8)}-${Date.now()}`;
 
     const { error: insertError } = await supabase.from("transactions").insert({
       user_id: userId,
       order_id: orderId,
-      tier: tier,
+      type: "topup",
+      tier: null,
       amount: amount,
       payment_status: "pending",
     });
@@ -71,10 +70,10 @@ Deno.serve(async (req) => {
       },
       item_details: [
         {
-          id: tier,
+          id: "topup",
           price: amount,
           quantity: 1,
-          name: `Bumble Subscription - ${tier.toUpperCase()}`,
+          name: "Top Up Saldo Bumble",
         },
       ],
     };
