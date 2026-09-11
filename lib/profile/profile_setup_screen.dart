@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/models/profile_model.dart';
+import 'package:bumble/services/supabase_service.dart';
+import 'package:bumble/home/home_screen.dart';
 
 /// Screen shown after sign up so the user can complete their profile.
 /// NOTE: This is UI-only for now — no Supabase logic wired yet.
@@ -31,6 +34,42 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         return "Male";
       case Gender.female:
         return "Female";
+    }
+  }
+
+  Future<void> handleSaveProfile() async {
+    if (ageController.text.isEmpty || selectedGender == null) {
+      Get.snackbar('Error', 'Please fill in age and gender', snackPosition: SnackPosition.TOP);
+      return;
+    }
+
+    final age = int.tryParse(ageController.text);
+    if (age == null || age <= 0) {
+      Get.snackbar('Error', 'Please enter a valid age', snackPosition: SnackPosition.TOP);
+      return;
+    }
+    if (age < 18) {
+      Get.snackbar('Error', 'You must be at least 18 years old', snackPosition: SnackPosition.TOP);
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try{
+      final userId = supabase.auth.currentUser!.id;
+
+      await supabase.from('profiles').update({
+        'age': age,
+        'gender': selectedGender!.name,
+        'bio': bioController.text.trim(),
+        'photo_url': '{userId}', // Placeholder for photo URL, to be updated later
+      }).eq('id', userId);
+
+      Get.offAll(() => const HomeScreen());
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to save profile. Please try again.', snackPosition: SnackPosition.BOTTOM);
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -141,9 +180,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: isLoading ? null : () {
-                    // Save logic wired in a later commit.
-                  },
+                  onPressed: isLoading ? null : handleSaveProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
