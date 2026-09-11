@@ -1,8 +1,12 @@
 import 'package:bumble/services/supabase_service.dart';
+import 'package:bumble/services/profile_service.dart';
+import 'package:bumble/authentication/signup_screen.dart';
+import 'package:bumble/authentication/forgot_password_screen.dart';
+import 'package:bumble/profile/profile_setup_screen.dart';
+import 'package:bumble/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:bumble/authentication/signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,8 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (response.user != null) {
+        final complete = await isProfileComplete(response.user!.id);
+        Get.offAll(() => complete ? const HomeScreen() : const ProfileSetupScreen());
         // Login success navigate to the next screen
-        Get.snackbar('Success', 'Login successful');
       } else {
         // Login fail show an error message
         Get.snackbar('Error', 'Login failed');
@@ -49,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Handle any errors that occur during login
       Get.snackbar('Error', e.message);
     } catch (e) {
+      print('LOGIN ERROR: $e');
       Get.snackbar('Error', 'An unexpected error occurred');
     } finally {
       setState(() => isLoading = false);
@@ -135,9 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {
-                    // Handle forgot password
-                  },
+                  onPressed: () => Get.to(() => const ForgotPasswordScreen()),
                   child: const Text("Forgot Password?"),
                 ),
               ),

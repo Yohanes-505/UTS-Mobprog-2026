@@ -2,6 +2,7 @@ import 'package:bumble/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:bumble/profile/profile_setup_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -60,9 +61,13 @@ class SignUpScreenState extends State<SignUpScreen> {
           'name': nameController.text.trim(),
           'created_at': DateTime.now().toIso8601String(),
         });
-
-        Get.snackbar('Success', 'Account created successfully!');
-        Get.back(); // balik ke Login Screen setelah sign up
+        if(response.session == null) {
+          Get.snackbar('Verify your email', 'We sent a confirmation link to your email. Please verify your email before logging in.', snackPosition: SnackPosition.BOTTOM);
+          Get.back(); // balik ke Login Screen setelah sign up
+        } else {
+          Get.snackbar('Success', 'Account created successfully!');
+          Get.offAll(() => const ProfileSetupScreen()); // balik ke Login Screen setelah sign up
+        }
       }
     } on AuthException catch (e) {
       Get.snackbar('Error', e.message);
