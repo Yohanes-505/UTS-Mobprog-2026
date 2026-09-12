@@ -33,7 +33,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     try {
       final sub = await _subscriptionService.getMySubscription();
       final isStillActive = sub != null &&
-          sub['status'] == 'active' &&
+          (sub['status'] == 'active' || sub['status'] == 'cancelled') &&
           sub['expires_at'] != null &&
           DateTime.parse(sub['expires_at']).isAfter(DateTime.now());
 
@@ -294,7 +294,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       AlertDialog(
         title: const Text('Batalkan Langganan?'),
         content: const Text(
-          'Sisa masa aktif akan dikonversi jadi saldo di akun kamu. Kamu tetap bisa pakai fitur premium sampai masa aktif berakhir.',
+          'Batalkan dalam 15 menit pertama sejak pembelian: dana kembali 80% ke saldo, tapi subscription langsung nonaktif saat itu juga. '
+          'Batalkan setelah 15 menit: dana tidak kembali, tapi kamu tetap bisa pakai fitur premium sampai masa aktif berakhir (tidak lanjut ke bulan berikutnya).',
         ),
         actions: [
           TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
@@ -313,8 +314,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       Get.snackbar(
         'Berhasil',
         refundAmount > 0
-            ? 'Langganan dibatalkan. Rp ${_formatRupiah(refundAmount)} saldo ditambahkan ke akun kamu.'
-            : 'Langganan sudah dibatalkan.',
+            ? 'Langganan dibatalkan & langsung nonaktif. Rp ${_formatRupiah(refundAmount)} saldo (80%) ditambahkan ke akun kamu.'
+            : 'Langganan dibatalkan. Tidak ada dana kembali, tapi kamu masih bisa pakai fiturnya sampai masa aktif berakhir.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
       );
