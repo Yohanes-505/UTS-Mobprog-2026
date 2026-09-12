@@ -1,3 +1,8 @@
+// lib/screens/subscription/transaction_history_screen.dart
+//
+// Fix: sejak Hari 8, tabel transactions cuma untuk TOP UP (kolom tier
+// bisa null). Card sekarang menampilkan "Top Up Saldo" kalau tier null.
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/subscription_service.dart';
@@ -43,14 +48,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: const Icon(Icons.arrow_back),
-        ),
-        title: const Text(
-          'Riwayat Transaksi',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-        ),
+        leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
+        title: const Text('Riwayat Transaksi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
       ),
       body: RefreshIndicator(
         color: Colors.purple,
@@ -59,15 +58,10 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             ? const Center(child: CircularProgressIndicator(color: Colors.purple))
             : _transactions.isEmpty
                 ? ListView(
-                    // ListView dipakai (bukan Center biasa) supaya
-                    // pull-to-refresh tetap berfungsi walau list kosong
                     children: const [
                       SizedBox(height: 120),
                       Center(
-                        child: Text(
-                          'Belum ada riwayat transaksi',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        child: Text('Belum ada riwayat transaksi', style: TextStyle(color: Colors.grey)),
                       ),
                     ],
                   )
@@ -82,7 +76,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
   }
 
   Widget _buildTransactionCard(Map<String, dynamic> trx) {
-    final tier = (trx['tier'] as String).toUpperCase();
+    // tier bisa null (transaksi top up sejak Hari 8), tampilkan label
+    // yang sesuai.
+    final tierRaw = trx['tier'] as String?;
+    final title = tierRaw != null ? 'Subscription ${tierRaw.toUpperCase()}' : 'Top Up Saldo';
+
     final amount = trx['amount'] as int;
     final status = trx['payment_status'] as String;
     final createdAt = DateTime.parse(trx['created_at']);
@@ -106,20 +104,11 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Subscription $tier',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 4),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
+                Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 const SizedBox(height: 4),
-                Text(
-                  'Rp $formattedAmount',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                ),
+                Text('Rp $formattedAmount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -162,10 +151,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
-        label,
-        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
-      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 }
