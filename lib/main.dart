@@ -1,6 +1,7 @@
 import 'package:bumble/authentication/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:bumble/controllers/profile_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'services/notification_service.dart';
 // import 'package:bumble/profile/profile_setup_screen.dart';
@@ -14,6 +15,8 @@ Future<void> main() async {
   );
 
   await initLocalNotifications();
+  
+  Get.put(ProfileController(), permanent: true);
   
   runApp(const MyApp());
 }
