@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../services/subscription_service.dart';
 import 'payment_webview_screen.dart';
+import 'wallet_history_screen.dart';
 
 class TopUpScreen extends StatefulWidget {
   const TopUpScreen({super.key});
@@ -75,6 +76,19 @@ class _TopUpScreenState extends State<TopUpScreen> {
                     Text(
                       'Rp ${_formatRupiah(_walletBalance)}',
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.purple),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => Get.to(() => const WalletHistoryScreen()),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text('Lihat Riwayat Saldo', style: TextStyle(fontSize: 12)),
+                      ),
                     ),
                   ],
                 ),
