@@ -1,5 +1,17 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class LikersResult {
+  final bool eligible;
+  final int totalCount;
+  final List<String> likerIds;
+
+  LikersResult({
+    required this.eligible,
+    required this.totalCount,
+    required this.likerIds,
+  });
+}
+
 class TopUpCheckoutResult {
   final String snapToken;
   final String redirectUrl;
@@ -62,6 +74,23 @@ class SubscriptionService {
     return result as int;
   }
 
+  Future<bool> setAutoRenew(bool enabled) async {
+    final result = await _client.rpc('set_auto_renew', params: {'p_enabled': enabled});
+    return result as bool;
+  }
+
+  Future<LikersResult> getMyLikers() async {
+    final result = await _client.rpc('get_my_likers');
+    final map = Map<String, dynamic>.from(result);
+    return LikersResult(
+      eligible: map['eligible'] as bool,
+      totalCount: map['total_count'] as int,
+      likerIds: (map['likers'] as List)
+          .map((e) => Map<String, dynamic>.from(e)['liker_id'] as String)
+          .toList(),
+    );
+  }
+
   Future<WalletPurchaseResult> purchaseWithWallet(String tier) async {
     final result = await _client.rpc('purchase_subscription_with_wallet', params: {
       'p_tier': tier,
@@ -104,7 +133,6 @@ class SubscriptionService {
     return List<Map<String, dynamic>>.from(data);
   }
 
-  /// Riwayat perubahan saldo wallet (top up, pembelian, refund pembatalan).
   Future<List<Map<String, dynamic>>> getWalletHistory() async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];
