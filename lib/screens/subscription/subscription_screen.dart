@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/subscription_tier.dart';
 import '../../services/subscription_service.dart';
 import 'transaction_history_screen.dart';
+import 'likes_screen.dart';
 import 'topup_screen.dart';
 
 class SubscriptionScreen extends StatefulWidget {
@@ -20,6 +22,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   bool _isLoadingStatus = true;
   Map<String, dynamic>? _activeSubscription;
   int _walletBalance = 0;
+  Timer? _refundWindowTimer;
+
+  @override
+  void dispose() {
+    _refundWindowTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -41,6 +50,25 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         _activeSubscription = isStillActive ? sub : null;
         if (isStillActive) _selectedTierId = sub['tier'];
       });
+
+      _refundWindowTimer?.cancel();
+      final isWithinGraceWindow = isStillActive &&
+          sub!['status'] == 'active' &&
+          DateTime.now().difference(DateTime.parse(sub['started_at'])) < const Duration(minutes: 15);
+
+      if (isWithinGraceWindow) {
+        _refundWindowTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) {
+            timer.cancel();
+            return;
+          }
+          final elapsed = DateTime.now().difference(DateTime.parse(sub['started_at']));
+          if (elapsed >= const Duration(minutes: 15)) {
+            timer.cancel();
+          }
+          setState(() {}); // cukup rebuild, angka dihitung ulang di build()
+        });
+      }
     } catch (_) {
       // bukan fatal
     } finally {
@@ -95,6 +123,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
               ),
             ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.favorite_border),
+            tooltip: 'Menyukaimu',
+            onPressed: () => Get.to(() => const LikesScreen()),
           ),
           IconButton(
             icon: const Icon(Icons.receipt_long_outlined),
@@ -239,9 +272,16 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Widget _buildActiveSubscriptionBanner() {
     final tier = _activeSubscription!['tier'] as String;
     final expiresAt = DateTime.parse(_activeSubscription!['expires_at']);
+    final startedAt = DateTime.parse(_activeSubscription!['started_at']);
     final tierName = SubscriptionTier.all.firstWhere((t) => t.id == tier).name;
     final formattedDate = "${expiresAt.day}/${expiresAt.month}/${expiresAt.year}";
     final isCancelled = _activeSubscription!['status'] == 'cancelled';
+
+    final elapsed = DateTime.now().difference(startedAt);
+    final isWithinGraceWindow = !isCancelled && elapsed < const Duration(minutes: 15);
+    final remaining = const Duration(minutes: 15) - elapsed;
+    final remainingMinutes = remaining.inMinutes.clamp(0, 15);
+    final remainingSeconds = (remaining.inSeconds % 60).clamp(0, 59);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
@@ -266,8 +306,53 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               ),
             ],
           ),
+          if (isWithinGraceWindow) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timer_outlined, size: 14, color: Colors.orange),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Batal sekarang = refund 80%. Sisa waktu: ${remainingMinutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}',
+                      style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (!isCancelled) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'Sudah lewat 15 menit — batal sekarang tidak akan ada refund.',
+              style: TextStyle(fontSize: 11, color: Colors.black54),
+            ),
+          ],
           if (!isCancelled) ...[
             const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Perpanjangan Otomatis',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                  ),
+                ),
+                Switch(
+                  value: _activeSubscription!['auto_renew'] as bool? ?? true,
+                  activeColor: Colors.purple,
+                  onChanged: _isProcessing ? null : _onAutoRenewToggled,
+                ),
+              ],
+            ),
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -287,6 +372,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _onAutoRenewToggled(bool value) async {
+    setState(() => _isProcessing = true);
+    try {
+      await _subscriptionService.setAutoRenew(value);
+      await _loadCurrentSubscription();
+      Get.snackbar(
+        'Berhasil',
+        value
+            ? 'Perpanjangan otomatis diaktifkan.'
+            : 'Perpanjangan otomatis dimatikan. Subscription tetap aktif sampai masa berlaku habis.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Gagal',
+        'Tidak bisa mengubah pengaturan: ${e.toString()}',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
   Future<void> _onCancelPressed() async {
@@ -342,7 +451,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           backgroundColor: Colors.green.shade100,
         );
       } else {
-        // Saldo tidak cukup -> tawarkan top up
         final shortfall = (result.required ?? 0) - (result.currentBalance ?? 0);
         final wantsTopUp = await Get.dialog<bool>(
           AlertDialog(
