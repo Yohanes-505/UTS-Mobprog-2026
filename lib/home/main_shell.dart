@@ -1,5 +1,5 @@
 import 'package:bumble/constants/app_colors.dart';
-import 'package:bumble/home/home_screen.dart';
+import 'package:bumble/home/home_swipe_screen.dart';
 import 'package:bumble/profile/profile_tab_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -21,7 +21,7 @@ class _MainShellState extends State<MainShell> {
 
   // Tab 2 (Match & Chat) masih placeholder — dikerjakan anggota tim lain.
   final List<Widget> _tabs = const [
-    HomeScreen(),
+    HomeSwipeScreen(),
     _ComingSoonTab(label: 'Match & Chat'),
     ProfileTabScreen(),
   ];
