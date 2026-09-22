@@ -1,6 +1,7 @@
 import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/home/home_swipe_screen.dart';
 import 'package:bumble/profile/profile_tab_screen.dart';
+import 'package:bumble/screens/match_screen.dart';
 import 'package:flutter/material.dart';
 
 /// Node flowchart: "Home (Bottom Navigation)".
@@ -19,10 +20,9 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0;
 
-  // Tab 2 (Match & Chat) masih placeholder — dikerjakan anggota tim lain.
   final List<Widget> _tabs = const [
     HomeSwipeScreen(),
-    _ComingSoonTab(label: 'Match & Chat'),
+    MatchChatScreen(),
     ProfileTabScreen(),
   ];
 
@@ -51,24 +51,6 @@ class _MainShellState extends State<MainShell> {
             label: 'Profile',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ComingSoonTab extends StatelessWidget {
-  final String label;
-  const _ComingSoonTab({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(label)),
-      body: Center(
-        child: Text(
-          '$label sedang dikerjakan.',
-          style: const TextStyle(color: AppColors.textSecondary),
-        ),
       ),
     );
   }

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../models/subscription_tier.dart';
-import '../../services/subscription_service.dart';
+import '../models/subscription_tier.dart';
+import '../services/subscription_service.dart';
 import 'transaction_history_screen.dart';
 import 'likes_screen.dart';
 import 'topup_screen.dart';

@@ -1,11 +1,10 @@
-import 'dart:typed_data';
-
 import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/constants/interest_options.dart';
 import 'package:bumble/controllers/profile_controller.dart';
 import 'package:bumble/models/profile_model.dart';
+import 'package:bumble/services/profile_service.dart';
 import 'package:bumble/widgets/interest_selector.dart';
-import 'package:bumble/widgets/photo_picker_avatar.dart';
+import 'package:bumble/widgets/photo_grid_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -26,7 +25,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Gender? _gender;
   List<String> _interests = [];
-  Uint8List? _photoPreview;
 
   @override
   void initState() {
@@ -82,15 +80,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         snackPosition: SnackPosition.BOTTOM);
   }
 
-  Future<void> _onPhotoPicked(Uint8List bytes, String ext) async {
-    setState(() => _photoPreview = bytes);
-    final ok = await controller.uploadPhoto(bytes, extension: ext);
-    if (ok) {
-      Get.snackbar('Foto diperbarui', 'Foto profil berhasil diganti.',
-          snackPosition: SnackPosition.BOTTOM);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,12 +89,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Obx(() => PhotoPickerAvatar(
-                  photoUrl: controller.me?.photoUrl,
-                  localPreview: _photoPreview,
-                  isUploading: controller.isSaving.value,
-                  onPicked: _onPhotoPicked,
-                )),
+            // Implementasi PhotoGridPicker yang baru
+            Obx(() {
+              final p = controller.me;
+              if (p == null) return const SizedBox(); 
+              
+              return PhotoGridPicker(
+                userId: p.id,
+                initialPhotos: p.photoUrls,
+                profileService: const ProfileService(),
+              );
+            }),
             const SizedBox(height: 28),
             _label('Nama'),
             TextField(

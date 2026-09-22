@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../services/subscription_service.dart';
+import '../services/subscription_service.dart';
 import 'payment_webview_screen.dart';
 import 'wallet_history_screen.dart';
 

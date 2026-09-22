@@ -46,6 +46,7 @@ class ProfileModel {
   final String? bio;
   final Gender? gender;
   final String? photoUrl;
+  final List<String>photoUrls;
   final List<String> interests;
 
   // Lokasi (GPS)
@@ -72,6 +73,7 @@ class ProfileModel {
     this.bio,
     this.gender,
     this.photoUrl,
+    this.photoUrls = const [],
     this.interests = const [],
     this.latitude,
     this.longitude,
@@ -120,6 +122,10 @@ class ProfileModel {
       bio: map['bio'] as String?,
       gender: GenderX.fromDb(map['gender'] as String?),
       photoUrl: map['photo_url'] as String?,
+      photoUrls:(map['photo_urls'] as List?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          const [],
       interests: (map['interests'] as List?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -145,6 +151,7 @@ class ProfileModel {
       'bio': bio,
       'gender': gender?.dbValue,
       'photo_url': photoUrl,
+      'photo_urls': photoUrls,
       'interests': interests,
     };
   }
@@ -164,6 +171,7 @@ class ProfileModel {
     String? bio,
     Gender? gender,
     String? photoUrl,
+    List<String>? photoUrls,
     List<String>? interests,
     double? latitude,
     double? longitude,
@@ -182,6 +190,7 @@ class ProfileModel {
       bio: bio ?? this.bio,
       gender: gender ?? this.gender,
       photoUrl: photoUrl ?? this.photoUrl,
+      photoUrls: photoUrls ?? this.photoUrls,
       interests: interests ?? this.interests,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
