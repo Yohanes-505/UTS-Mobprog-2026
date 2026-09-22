@@ -1,0 +1,156 @@
+import 'package:bumble/models/profile_model.dart';
+import 'package:bumble/services/match_chat_service.dart';
+import 'package:flutter/material.dart';
+
+class MatchChatScreen extends StatefulWidget {
+  const MatchChatScreen({super.key});
+
+  @override
+  State<MatchChatScreen> createState() => _MatchChatScreenState();
+}
+
+class _MatchChatScreenState extends State<MatchChatScreen> {
+  final MatchChatService _service = const MatchChatService();
+
+  late Future<List<ProfileModel>> _matchesFuture;
+  late Future<List<Map<String, dynamic>>> _conversationsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() {
+    _matchesFuture = _service.getMyMatches();
+    _conversationsFuture = _service.getConversations();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Match & Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() {
+            _loadData();
+          });
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            // 1. bagian dari new matches
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Text(
+                'Match Baru',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.orangeAccent),
+              ),
+            ),
+            SizedBox(
+              height: 100,
+              child: FutureBuilder<List<ProfileModel>>(
+                future: _matchesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text('Belum ada match baru.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    );
+                  }
+
+                  final matches = snapshot.data!;
+                  return ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    itemCount: matches.length,
+                    itemBuilder: (context, index) {
+                      final profile = matches[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 32,
+                              backgroundImage: profile.photoUrl != null
+                                  ? NetworkImage(profile.photoUrl!)
+                                  : null,
+                              child: profile.photoUrl == null ? const Icon(Icons.person) : null,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              profile.name,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const Divider(thickness: 1, color: Colors.black12),
+
+            // bagian chatnya
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Text(
+                'Pesan',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _conversationsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: Center(
+                      child: Text('Belum ada percakapan aktif.', style: TextStyle(color: Colors.grey)),
+                    ),
+                  );
+                }
+
+                final chats = snapshot.data!;
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: chats.length,
+                  itemBuilder: (context, index) {
+                    final chat = chats[index];
+                    return ListTile(
+                      leading: const CircleAvatar(radius: 28, child: Icon(Icons.person)),
+                      title: Text('User Match'), // Ganti dengan nama asli dari relasi database
+                      subtitle: Text(
+                        chat['message'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        // Navigasi ke ruang chat personal
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
