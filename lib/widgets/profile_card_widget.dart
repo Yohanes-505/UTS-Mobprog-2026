@@ -6,53 +6,73 @@ class ProfileCardWidget extends StatelessWidget {
   final ProfileModel profile;
   final VoidCallback onLike;
   final VoidCallback onPass;
+  final bool isFullCard;
 
   const ProfileCardWidget({
     super.key,
     required this.profile,
     required this.onLike,
     required this.onPass,
+    this.isFullCard = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: isFullCard
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 10,
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(
-              profile.photoUrl ?? '{profile.id}', //placeholder
-              height: 260,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 260,
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.person, size: 80, color: Colors.grey),
-              ),
-            ),
-          ),
+          if (isFullCard)
+            Expanded(child: _buildImage())
+          else
+            _buildImage(fixedHeight: 260),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  "${profile.name}${profile.age != null ? ', ${profile.age}' : ''}",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "${profile.name}${profile.age != null ? ', ${profile.age}' : ''}",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (profile.city != null && profile.city!.isNotEmpty)
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text(
+                            profile.city!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
                 if (profile.bio != null && profile.bio!.isNotEmpty) ...[
                   const SizedBox(height: 6),
@@ -63,13 +83,33 @@ class ProfileCardWidget extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                   ),
                 ],
-                const SizedBox(height: 16),
+                if (profile.interests.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: profile.interests.take(3).map((interest) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          interest,
+                          style: TextStyle(fontSize: 11, color: Colors.grey.shade800),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                const SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _actionButton(
                       icon: Icons.close,
-                      color: Colors.grey.shade400,
+                      color: Colors.grey.shade500,
                       onTap: onPass,
                     ),
                     _actionButton(
@@ -84,6 +124,30 @@ class ProfileCardWidget extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildImage({double? fixedHeight}) {
+    final photo = profile.photoUrl;
+    final hasValidPhoto =
+        photo != null && photo.isNotEmpty && photo.startsWith('http');
+
+    return SizedBox(
+      height: fixedHeight,
+      width: double.infinity,
+      child: hasValidPhoto
+          ? Image.network(
+              photo,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.person, size: 80, color: Colors.grey),
+              ),
+            )
+          : Container(
+              color: Colors.grey.shade200,
+              child: const Icon(Icons.person, size: 80, color: Colors.grey),
+            ),
     );
   }
 
