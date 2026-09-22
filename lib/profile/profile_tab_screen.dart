@@ -5,7 +5,7 @@ import 'package:bumble/models/profile_model.dart';
 import 'package:bumble/profile/edit_profile_screen.dart';
 import 'package:bumble/profile/filter_preference_screen.dart';
 import 'package:bumble/profile/safe_dating_tips_screen.dart';
-import 'package:bumble/screens/subscription/subscription_screen.dart';
+import 'package:bumble/screens/subscription_screen.dart';
 import 'package:bumble/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

@@ -103,34 +103,74 @@ class ProfileService {
     return ProfileModel.fromMap(data);
   }
 
-  /// Upload foto profil ke bucket `avatars` dan kembalikan public URL-nya.
-  /// Pakai `uploadBinary` supaya jalan di Android maupun Flutter Web.
+  /// Upload SATU foto tambahan ke bucket `avatars` dan kembalikan public
+  /// URL-nya. Setiap foto dapat nama file unik (timestamp) supaya tidak
+  /// saling menimpa — jadi user bisa punya banyak foto sekaligus.
   Future<String> uploadPhoto({
     required String userId,
     required Uint8List bytes,
     String fileExtension = 'jpg',
   }) async {
-    final path = '$userId/avatar.$fileExtension';
+    final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExtension';
+    final path = '$userId/$fileName';
 
     await supabase.storage.from(_bucket).uploadBinary(
           path,
           bytes,
           fileOptions: FileOptions(
-            upsert: true,
+            upsert: false, // nama sudah unik per foto, tidak perlu upsert
             contentType: _contentTypeFor(fileExtension),
           ),
         );
 
     final publicUrl = supabase.storage.from(_bucket).getPublicUrl(path);
 
-    // Cache-buster: tanpa ini foto lama masih muncul setelah diganti.
-    final busted = '$publicUrl?v=${DateTime.now().millisecondsSinceEpoch}';
+    // Ambil daftar foto yang sudah ada, lalu tambah foto baru ini.
+    final current = await getProfileById(userId);
+    final updatedUrls = [...(current?.photoUrls ?? const []), publicUrl];
 
     await supabase
         .from(_table)
-        .update({'photo_url': busted}).eq('id', userId);
+        .update({
+          'photo_urls': updatedUrls,
+          'photo_url': updatedUrls.first,
+        })
+        .eq('id', userId);
 
-    return busted;
+    return publicUrl;
+  }
+
+  /// Hapus satu foto dari `photo_urls` (file fisiknya dari storage).
+  Future<void> deletePhoto({
+    required String userId,
+    required String photoUrl,
+  }) async {
+    final current = await getProfileById(userId);
+    if (current == null) return;
+
+    final updatedUrls =
+        current.photoUrls.where((u) => u != photoUrl).toList();
+
+    await supabase
+        .from(_table)
+        .update({
+          'photo_urls': updatedUrls,
+          'photo_url': updatedUrls.isNotEmpty ? updatedUrls.first : null,
+        })
+        .eq('id', userId);
+
+    // Hapus file fisiknya dari storage.
+    try {
+      final uri = Uri.parse(photoUrl);
+      final marker = '/$_bucket/';
+      final idx = uri.path.indexOf(marker);
+      if (idx != -1) {
+        final storagePath = uri.path.substring(idx + marker.length);
+        await supabase.storage.from(_bucket).remove([storagePath]);
+      }
+    } catch (_) {
+      // Kalau parsing gagal, data di DB sudah konsisten,
+    }
   }
 
   /// Ambil user terdekat sesuai radius + filter preferensi (RPC Haversine).
