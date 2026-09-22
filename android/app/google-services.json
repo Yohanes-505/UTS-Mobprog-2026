@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "860154816255",
+    "project_id": "moprog-e663d",
+    "storage_bucket": "moprog-e663d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860154816255:android:040ada65f4eecccef80eca",
+        "android_client_info": {
+          "package_name": "com.example.bumble"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDu7XL2uwGlY-EiKd2nkkNb7NZ1UsyBnWs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
