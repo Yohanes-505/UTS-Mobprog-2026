@@ -1,5 +1,5 @@
 import 'package:bumble/constants/app_colors.dart';
-import 'package:bumble/home/home_swipe_screen.dart';
+import 'package:bumble/home/home_screen.dart';
 import 'package:bumble/profile/profile_tab_screen.dart';
 import 'package:bumble/screens/match_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +21,7 @@ class _MainShellState extends State<MainShell> {
   int _index = 0;
 
   final List<Widget> _tabs = const [
-    HomeSwipeScreen(),
+    HomeScreen(),
     MatchChatScreen(),
     ProfileTabScreen(),
   ];
