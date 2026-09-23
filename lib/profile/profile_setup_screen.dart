@@ -4,6 +4,7 @@ import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/constants/interest_options.dart';
 import 'package:bumble/controllers/profile_controller.dart';
 import 'package:bumble/home/home_screen.dart';
+import 'package:bumble/home/main_shell.dart';
 import 'package:bumble/models/profile_model.dart';
 import 'package:bumble/widgets/interest_selector.dart';
 import 'package:bumble/widgets/photo_picker_avatar.dart';
@@ -135,7 +136,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       maxDistanceKm: _maxDistance.round(),
     );
 
-    Get.offAll(() => const HomeScreen());
+    Get.offAll(() => const MainShell());
   }
 
   Future<void> _onPhotoPicked(Uint8List bytes, String ext) async {

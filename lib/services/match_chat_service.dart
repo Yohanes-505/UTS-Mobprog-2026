@@ -1,57 +1,69 @@
 import 'package:bumble/models/profile_model.dart';
-import 'package:bumble/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MatchChatService {
   const MatchChatService();
 
-  /// Ambil daftar profil user lain yang match sama user yang sedang login
   Future<List<ProfileModel>> getMyMatches() async {
-    final currentUserId = supabase.auth.currentUser?.id;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return [];
 
-    try {
-      final response = await supabase
-          .from('matches')
-          .select('*, user1:profiles!user1_id(*), user2:profiles!user2_id(*)')
-          .or('user1_id.eq.$currentUserId,user2_id.eq.$currentUserId')
-          .order('created_at', ascending: false);
+    final response = await Supabase.instance.client
+        .from('matches')
+        .select('user1_id, user2_id')
+        .or('user1_id.eq.$currentUserId,user2_id.eq.$currentUserId');
 
-      final List<ProfileModel> matchedProfiles = [];
-      
-      for (final row in response) {
-        // Cek apakah posisi kita ada di user1_id atau user2_id
-        final isUser1 = row['user1_id'] == currentUserId;
-        
-        // Ambil map data milik lawan bicara berdasarkan posisi kita
-        final otherUserData = isUser1 ? row['user2'] : row['user1'];
-        
-        if (otherUserData != null) {
-          matchedProfiles.add(ProfileModel.fromMap(Map<String, dynamic>.from(otherUserData)));
-        }
+    List<String> matchedUserIds = [];
+    for (var row in response) {
+      if (row['user1_id'] == currentUserId) {
+        matchedUserIds.add(row['user2_id']);
+      } else {
+        matchedUserIds.add(row['user1_id']);
       }
-      return matchedProfiles;
-    } catch (e) {
-      print('Error fetching matches: $e');
-      return [];
     }
+
+    if (matchedUserIds.isEmpty) return [];
+
+    final profilesResponse = await Supabase.instance.client
+        .from('profiles')
+        .select()
+        .filter('id', 'in', matchedUserIds);
+
+    return List<Map<String, dynamic>>.from(profilesResponse)
+        .map((e) => ProfileModel.fromMap(e))
+        .toList();
   }
 
-  /// Mengambil daftar chat / percakapan terakhir
   Future<List<Map<String, dynamic>>> getConversations() async {
-    final currentUserId = supabase.auth.currentUser?.id;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     if (currentUserId == null) return [];
 
-    try {
-      // Query untuk mengambil pesan terakhir per match
-      final response = await supabase
-          .from('messages')
-          .select('*, matches(*)')
-          .order('created_at', ascending: false);
+    final matches = await getMyMatches();
+    List<Map<String, dynamic>> conversations = [];
 
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      print('Error fetching conversations: $e');
-      return [];
+    for (var match in matches) {
+      final msgResponse = await Supabase.instance.client
+          .from('messages')
+          .select()
+          .or('and(sender_id.eq.$currentUserId,receiver_id.eq.${match.id}),and(sender_id.eq.${match.id},receiver_id.eq.$currentUserId)')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      conversations.add({
+        'profile': match,
+        'message': msgResponse != null ? msgResponse['message'] : 'Mulai percakapan baru!',
+        'created_at': msgResponse != null ? msgResponse['created_at'] : null,
+      });
     }
+
+    conversations.sort((a, b) {
+      if (a['created_at'] == null && b['created_at'] == null) return 0;
+      if (a['created_at'] == null) return 1;
+      if (b['created_at'] == null) return -1;
+      return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+    });
+
+    return conversations;
   }
 }

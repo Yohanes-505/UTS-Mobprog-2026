@@ -1,6 +1,8 @@
 import 'package:bumble/models/profile_model.dart';
 import 'package:bumble/services/match_chat_service.dart';
+import 'package:bumble/screens/chat_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class MatchChatScreen extends StatefulWidget {
   const MatchChatScreen({super.key});
@@ -72,24 +74,27 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
                     itemCount: matches.length,
                     itemBuilder: (context, index) {
                       final profile = matches[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Column(
-                          children: [
-                            CircleAvatar(
-                              radius: 32,
-                              backgroundImage: profile.photoUrl != null
-                                  ? NetworkImage(profile.photoUrl!)
-                                  : null,
-                              child: profile.photoUrl == null ? const Icon(Icons.person) : null,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              profile.name,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+                      return GestureDetector(
+                        onTap: () => Get.to(() => ChatScreen(matchProfile: profile)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 32,
+                                backgroundImage: profile.photoUrl != null
+                                    ? NetworkImage(profile.photoUrl!)
+                                    : null,
+                                child: profile.photoUrl == null ? const Icon(Icons.person) : null,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                profile.name,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -132,16 +137,29 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
                   itemCount: chats.length,
                   itemBuilder: (context, index) {
                     final chat = chats[index];
+                    final ProfileModel profile = chat['profile'];
+                    
                     return ListTile(
-                      leading: const CircleAvatar(radius: 28, child: Icon(Icons.person)),
-                      title: Text('User Match'), // Ganti dengan nama asli dari relasi database
+                      leading: CircleAvatar(
+                        radius: 28, 
+                        backgroundImage: profile.photoUrl != null ? NetworkImage(profile.photoUrl!) : null,
+                        child: profile.photoUrl == null ? const Icon(Icons.person) : null,
+                      ),
+                      title: Text(profile.name),
                       subtitle: Text(
                         chat['message'] ?? '',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: chat['message'] == 'Mulai percakapan baru!' ? Colors.orangeAccent : Colors.grey,
+                        ),
                       ),
                       onTap: () {
                         // Navigasi ke ruang chat personal
+                        Get.to(() => ChatScreen(matchProfile: profile))?.then((_) {
+                           // Refresh data ketika kembali dari chat room
+                           setState(() => _loadData());
+                        });
                       },
                     );
                   },
