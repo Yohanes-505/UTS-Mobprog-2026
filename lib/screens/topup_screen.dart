@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/subscription_service.dart';
@@ -51,9 +52,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
-        title: const Text('Top Up Saldo', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text('Top Up Saldo', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
       ),
       body: SafeArea(
         child: Padding(
@@ -65,17 +66,17 @@ class _TopUpScreenState extends State<TopUpScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Saldo Kamu Sekarang', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                    const Text('Saldo Kamu Sekarang', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 4),
                     Text(
                       'Rp ${_formatRupiah(_walletBalance)}',
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.purple),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryDeep),
                     ),
                     const SizedBox(height: 8),
                     Align(
@@ -109,14 +110,14 @@ class _TopUpScreenState extends State<TopUpScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                       decoration: BoxDecoration(
-                        color: isSelected ? Colors.purple : Colors.white,
+                        color: isSelected ? AppColors.primary : Colors.white,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isSelected ? Colors.purple : Colors.grey.shade300),
+                        border: Border.all(color: isSelected ? AppColors.primary : Colors.grey.shade300),
                       ),
                       child: Text(
                         'Rp ${_formatRupiah(amount)}',
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -143,7 +144,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: (_effectiveAmount == null || _effectiveAmount! < 10000 || _isProcessing)
@@ -153,9 +154,9 @@ class _TopUpScreenState extends State<TopUpScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(color: AppColors.onPrimary, strokeWidth: 2),
                         )
-                      : const Text('Lanjut ke Pembayaran', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      : const Text('Lanjut ke Pembayaran', style: TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
@@ -186,7 +187,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
         'Gagal',
         'Terjadi kesalahan: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
+        backgroundColor: AppColors.errorSoft,
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -217,7 +218,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
           'Berhasil!',
           'Saldo bertambah Rp ${_formatRupiah(newBalance - balanceBefore)}.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
+          backgroundColor: AppColors.successSoft,
         );
         Get.back(result: true); // beri tahu screen sebelumnya untuk refresh saldo juga
         return;
@@ -228,7 +229,7 @@ class _TopUpScreenState extends State<TopUpScreen> {
       'Belum Terkonfirmasi',
       'Status pembayaran belum berubah. Coba cek lagi beberapa saat lagi.',
       snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: Colors.orange.shade100,
+      backgroundColor: AppColors.warningSoft,
     );
   }
 

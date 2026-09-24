@@ -26,9 +26,7 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
-  final ProfileController controller = Get.isRegistered<ProfileController>()
-      ? Get.find<ProfileController>()
-      : Get.put(ProfileController());
+  final ProfileController controller = ProfileController.to;
 
   final PageController _pageController = PageController();
   final TextEditingController nameController = TextEditingController();
@@ -270,7 +268,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 selectedColor: AppColors.primary,
                 backgroundColor: Colors.grey.shade100,
                 labelStyle: TextStyle(
-                  color: isSelected ? AppColors.onPrimary : Colors.black87,
+                  color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -341,7 +339,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: hasLocation
-                      ? AppColors.primary
+                      ? AppColors.green
                       : Colors.grey.shade300,
                 ),
               ),
@@ -354,7 +352,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         hasLocation
                             ? Icons.location_on
                             : Icons.location_off_outlined,
-                        color: hasLocation ? Colors.black87 : Colors.grey,
+                        color: hasLocation ? AppColors.primaryDeep : AppColors.textSecondary,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -439,7 +437,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             min: 18,
             max: 60,
             divisions: 42,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.primaryDeep,
             labels: RangeLabels(
               '${_ageRange.start.round()}',
               '${_ageRange.end.round()}',
@@ -453,7 +451,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
             min: 1,
             max: 200,
             divisions: 199,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.primaryDeep,
             label: '${_maxDistance.round()} km',
             onChanged: (v) => setState(() => _maxDistance = v),
           ),

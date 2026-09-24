@@ -125,7 +125,7 @@ class _PhotoGridPickerState extends State<PhotoGridPicker> {
                           color: Colors.white,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, color: Colors.red, size: 16),
+                        child: const Icon(Icons.close, color: AppColors.error, size: 16),
                       ),
                     ),
                   ),
@@ -142,7 +142,7 @@ class _PhotoGridPickerState extends State<PhotoGridPicker> {
                         ),
                         child: const Text(
                           'Utama',
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: AppColors.onPrimary, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -158,10 +158,10 @@ class _PhotoGridPickerState extends State<PhotoGridPicker> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary, width: 2, style: BorderStyle.solid), // Sesuaikan warna
+                    border: Border.all(color: AppColors.primaryDeep, width: 2, style: BorderStyle.solid),
                   ),
                   child: Center(
-                    child: Icon(Icons.add_a_photo, size: 32, color: AppColors.primary),
+                    child: Icon(Icons.add_a_photo, size: 32, color: AppColors.primaryDeep),
                   ),
                 ),
               );

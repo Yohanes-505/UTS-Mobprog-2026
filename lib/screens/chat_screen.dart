@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/models/profile_model.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -46,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         elevation: 1,
       ),
       body: Column(
@@ -67,7 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 if (messages.isEmpty) {
                   return const Center(
-                    child: Text('Belum ada pesan. Sapa dia duluan!', style: TextStyle(color: Colors.grey)),
+                    child: Text('Belum ada pesan. Sapa dia duluan!', style: TextStyle(color: AppColors.textSecondary)),
                   );
                 }
 
@@ -84,7 +85,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.orangeAccent : Colors.grey[200],
+                          color: isMe ? AppColors.primary : AppColors.surfaceMuted,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(16),
                             topRight: const Radius.circular(16),
@@ -94,7 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         child: Text(
                           msg['message'],
-                          style: TextStyle(color: isMe ? Colors.white : Colors.black87),
+                          style: TextStyle(color: isMe ? AppColors.onPrimary : AppColors.textPrimary),
                         ),
                       ),
                     );
@@ -125,15 +126,15 @@ class _ChatScreenState extends State<ChatScreen> {
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
-                        fillColor: Colors.grey[100],
+                        fillColor: AppColors.surfaceMuted,
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
-                    backgroundColor: Colors.orangeAccent,
+                    backgroundColor: AppColors.primary,
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.send, color: AppColors.onPrimary, size: 20),
                       onPressed: _sendMessage,
                     ),
                   )

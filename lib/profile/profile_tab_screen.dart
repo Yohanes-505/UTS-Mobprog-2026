@@ -18,9 +18,7 @@ class ProfileTabScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.isRegistered<ProfileController>()
-        ? Get.find<ProfileController>()
-        : Get.put(ProfileController());
+    final controller = ProfileController.to;
 
     return Scaffold(
       appBar: AppBar(
@@ -86,12 +84,12 @@ class ProfileTabScreen extends StatelessWidget {
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () => _confirmLogout(context),
-                icon: const Icon(Icons.logout, color: Colors.red),
+                icon: const Icon(Icons.logout, color: AppColors.error),
                 label: const Text('Keluar',
-                    style: TextStyle(color: Colors.red)),
+                    style: TextStyle(color: AppColors.error)),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
-                  side: const BorderSide(color: Colors.red),
+                  side: const BorderSide(color: AppColors.error),
                 ),
               ),
               const SizedBox(height: 32),
@@ -151,8 +149,8 @@ class ProfileTabScreen extends StatelessWidget {
                             : Icons.location_off_outlined,
                         size: 16,
                         color: profile.hasLocation
-                            ? Colors.black87
-                            : Colors.grey,
+                            ? AppColors.primaryDeep
+                            : AppColors.textSecondary,
                       )),
                 const SizedBox(width: 6),
                 Text(
@@ -171,7 +169,7 @@ class ProfileTabScreen extends StatelessWidget {
           Text(
             profile.bio!,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade700),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
         ],
         if (profile.interests.isNotEmpty) ...[
@@ -257,7 +255,7 @@ class ProfileTabScreen extends StatelessWidget {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: AppColors.primary.withValues(alpha: 0.2),
-          child: Icon(icon, color: Colors.black87, size: 20),
+          child: Icon(icon, color: AppColors.ink, size: 20),
         ),
         title: Text(title,
             style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -281,7 +279,7 @@ class ProfileTabScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Keluar', style: TextStyle(color: Colors.red)),
+            child: const Text('Keluar', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),

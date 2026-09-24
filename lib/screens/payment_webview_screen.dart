@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -49,7 +50,7 @@ class _PaymentWebviewScreenState extends State<PaymentWebviewScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         elevation: 0,
         title: const Text(
           'Pembayaran',
@@ -64,7 +65,7 @@ class _PaymentWebviewScreenState extends State<PaymentWebviewScreen> {
         children: [
           WebViewWidget(controller: _controller),
           if (_isLoading)
-            const Center(child: CircularProgressIndicator(color: Colors.purple)),
+            const Center(child: CircularProgressIndicator(color: AppColors.primaryDeep)),
         ],
       ),
     );

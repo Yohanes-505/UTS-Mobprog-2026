@@ -52,14 +52,14 @@ class InterestSelector extends StatelessWidget {
               avatar: Icon(
                 InterestOptions.iconFor(label),
                 size: 18,
-                color: isSelected ? AppColors.onPrimary : Colors.black54,
+                color: isSelected ? AppColors.onPrimary : AppColors.textSecondary,
               ),
               label: Text(label),
               onSelected: (_) => _toggle(context, label),
               selectedColor: AppColors.primary,
               backgroundColor: Colors.grey.shade100,
               labelStyle: TextStyle(
-                color: isSelected ? AppColors.onPrimary : Colors.black87,
+                color: isSelected ? AppColors.onPrimary : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
               shape: RoundedRectangleBorder(

@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/subscription_service.dart';
@@ -39,12 +40,12 @@ class _LikesScreenState extends State<LikesScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
-        title: const Text('Menyukaimu', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text('Menyukaimu', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.purple))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDeep))
           : (_result == null
               ? const SizedBox()
               : (_result!.eligible ? _buildEligibleView() : _buildUpsellView())),
@@ -54,21 +55,21 @@ class _LikesScreenState extends State<LikesScreen> {
   Widget _buildEligibleView() {
     if (_result!.likerIds.isEmpty) {
       return RefreshIndicator(
-        color: Colors.purple,
+        color: AppColors.primaryDeep,
         onRefresh: _load,
         child: ListView(
           children: const [
             SizedBox(height: 120),
-            Icon(Icons.favorite_border, size: 48, color: Colors.grey),
+            Icon(Icons.favorite_border, size: 48, color: AppColors.mist),
             SizedBox(height: 12),
-            Center(child: Text('Belum ada yang like kamu', style: TextStyle(color: Colors.grey))),
+            Center(child: Text('Belum ada yang like kamu', style: TextStyle(color: AppColors.textSecondary))),
           ],
         ),
       );
     }
 
     return RefreshIndicator(
-      color: Colors.purple,
+      color: AppColors.primaryDeep,
       onRefresh: _load,
       child: GridView.builder(
         padding: const EdgeInsets.all(16),
@@ -87,15 +88,15 @@ class _LikesScreenState extends State<LikesScreen> {
   Widget _buildLikerTile(String likerId) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.purple.shade50,
+        color: AppColors.primarySoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.person, size: 48, color: Colors.purple),
+          Icon(Icons.person, size: 48, color: AppColors.primaryDeep),
           SizedBox(height: 8),
-          Text('Menyukaimu', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          Text('Menyukaimu', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -123,7 +124,7 @@ class _LikesScreenState extends State<LikesScreen> {
                       width: 140,
                       height: 180,
                       decoration: BoxDecoration(
-                        color: Colors.purple.shade100,
+                        color: AppColors.green,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(Icons.favorite, color: Colors.white, size: 40),
@@ -142,7 +143,7 @@ class _LikesScreenState extends State<LikesScreen> {
           const SizedBox(height: 8),
           const Text(
             'Upgrade ke Premium atau VIP untuk melihat semua orang yang sudah menyukaimu.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -151,11 +152,11 @@ class _LikesScreenState extends State<LikesScreen> {
             height: 50,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
+                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () => Get.to(() => const SubscriptionScreen()),
-              child: const Text('Upgrade Sekarang', style: TextStyle(fontSize: 16, color: Colors.white)),
+              child: const Text('Upgrade Sekarang', style: TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700)),
             ),
           ),
         ],

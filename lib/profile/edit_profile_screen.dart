@@ -17,7 +17,7 @@ class EditProfileScreen extends StatefulWidget {
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  final ProfileController controller = Get.find<ProfileController>();
+  final ProfileController controller = ProfileController.to;
 
   late final TextEditingController nameController;
   late final TextEditingController ageController;

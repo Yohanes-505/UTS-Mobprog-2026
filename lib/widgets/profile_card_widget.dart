@@ -61,7 +61,7 @@ class ProfileCardWidget extends StatelessWidget {
                     if (profile.city != null && profile.city!.isNotEmpty)
                       Row(
                         children: [
-                          const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                          const Icon(Icons.location_on, size: 16, color: AppColors.textSecondary),
                           const SizedBox(width: 4),
                           Text(
                             profile.city!,
@@ -114,7 +114,7 @@ class ProfileCardWidget extends StatelessWidget {
                     ),
                     _actionButton(
                       icon: Icons.favorite,
-                      color: AppColors.primary,
+                      color: AppColors.primaryDeep,
                       onTap: onLike,
                     ),
                   ],

@@ -16,6 +16,15 @@ class ProfileController extends GetxController {
   final ProfileService _profileService = const ProfileService();
   final LocationService _locationService = const LocationService();
 
+  /// Satu-satunya cara mengambil controller ini dari layar mana pun.
+  ///
+  /// Kalau belum terdaftar (misalnya setelah logout menghapusnya),
+  /// dibuat ulang dengan `permanent: true` supaya tidak ikut dibuang
+  /// GetX saat layar yang membuatnya ditutup.
+  static ProfileController get to => Get.isRegistered<ProfileController>()
+      ? Get.find<ProfileController>()
+      : Get.put(ProfileController(), permanent: true);
+
   final Rxn<ProfileModel> profile = Rxn<ProfileModel>();
   final RxBool isLoading = false.obs;
   final RxBool isSaving = false.obs;

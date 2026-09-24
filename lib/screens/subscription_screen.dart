@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -93,9 +94,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
-        title: const Text('Pilih Paket', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text('Pilih Paket', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
         actions: [
           GestureDetector(
             onTap: () async {
@@ -107,17 +108,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 margin: const EdgeInsets.only(right: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.purple.shade50,
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: Colors.purple),
+                    const Icon(Icons.account_balance_wallet_outlined, size: 14, color: AppColors.primaryDeep),
                     const SizedBox(width: 4),
                     Text(
                       'Rp ${_formatRupiah(_walletBalance)}',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.purple),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryDeep),
                     ),
                   ],
                 ),
@@ -142,7 +143,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             if (_isLoadingStatus)
               const Padding(
                 padding: EdgeInsets.only(top: 16),
-                child: LinearProgressIndicator(color: Colors.purple, minHeight: 2),
+                child: LinearProgressIndicator(color: AppColors.primaryDeep, minHeight: 2),
               ),
             if (hasActiveSub) _buildActiveSubscriptionBanner(),
             const Padding(
@@ -151,7 +152,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   "Upgrade untuk pengalaman matching yang lebih maksimal",
-                  style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                 ),
               ),
             ),
@@ -176,7 +177,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           color: isFree ? Colors.grey.shade100 : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected ? Colors.purple : Colors.grey.shade300,
+                            color: isSelected ? AppColors.primaryDeep : Colors.grey.shade300,
                             width: isSelected ? 2 : 1,
                           ),
                         ),
@@ -190,21 +191,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(20)),
+                                    decoration: BoxDecoration(color: AppColors.success, borderRadius: BorderRadius.circular(20)),
                                     child: const Text('AKTIF', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
                                   ),
                                 ] else if (tier.isPopular) ...[
                                   const SizedBox(width: 8),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.purple, borderRadius: BorderRadius.circular(20)),
-                                    child: const Text('POPULER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                                    decoration: BoxDecoration(color: AppColors.ink, borderRadius: BorderRadius.circular(20)),
+                                    child: const Text('POPULER', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.lime)),
                                   ),
                                 ],
                                 const Spacer(),
                                 Icon(
                                   isFree ? Icons.check_circle : (isSelected ? Icons.check_circle : Icons.circle_outlined),
-                                  color: isFree ? Colors.grey : (isSelected ? Colors.purple : Colors.grey),
+                                  color: isFree ? Colors.grey : (isSelected ? AppColors.primaryDeep : Colors.grey),
                                   size: 22,
                                 ),
                               ],
@@ -212,7 +213,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                             const SizedBox(height: 4),
                             Text(
                               tier.formattedPrice,
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isFree ? Colors.grey : Colors.black87),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: isFree ? Colors.grey : AppColors.textPrimary),
                             ),
                             const SizedBox(height: 12),
                             ...tier.features.map(
@@ -221,9 +222,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.check, size: 16, color: Colors.purple),
+                                    const Icon(Icons.check, size: 16, color: AppColors.primaryDeep),
                                     const SizedBox(width: 8),
-                                    Expanded(child: Text(f, style: const TextStyle(fontSize: 13, color: Colors.black87))),
+                                    Expanded(child: Text(f, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary))),
                                   ],
                                 ),
                               ),
@@ -243,7 +244,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: (_selectedTierId == 'free' ||
@@ -252,8 +253,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       ? null
                       : _onSubscribePressed,
                   child: _isProcessing
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(_buttonLabel(hasActiveSub), style: const TextStyle(fontSize: 16, color: Colors.white)),
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppColors.onPrimary, strokeWidth: 2))
+                      : Text(_buttonLabel(hasActiveSub), style: const TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700)),
                 ),
               ),
             ),
@@ -287,21 +288,21 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       margin: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.purple.shade50,
+        color: AppColors.primarySoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.shade100),
+        border: Border.all(color: AppColors.primaryBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.workspace_premium, color: Colors.purple),
+              const Icon(Icons.workspace_premium, color: AppColors.primaryDeep),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Kamu berlangganan $tierName, aktif sampai $formattedDate',
-                  style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w500),
                 ),
               ),
             ],
@@ -311,17 +312,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: AppColors.warningSoft,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.timer_outlined, size: 14, color: Colors.orange),
+                  const Icon(Icons.timer_outlined, size: 14, color: AppColors.warning),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       'Batal sekarang = refund 80%. Sisa waktu: ${remainingMinutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}',
-                      style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -331,7 +332,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             const SizedBox(height: 8),
             const Text(
               'Sudah lewat 15 menit — batal sekarang tidak akan ada refund.',
-              style: TextStyle(fontSize: 11, color: Colors.black54),
+              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
             ),
           ],
           if (!isCancelled) ...[
@@ -343,12 +344,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 const Expanded(
                   child: Text(
                     'Perpanjangan Otomatis',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                   ),
                 ),
                 Switch(
                   value: _activeSubscription!['auto_renew'] as bool? ?? true,
-                  activeColor: Colors.purple,
+                  activeColor: AppColors.primaryDeep,
                   onChanged: _isProcessing ? null : _onAutoRenewToggled,
                 ),
               ],
@@ -357,7 +358,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: _isProcessing ? null : _onCancelPressed,
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
                 child: const Text('Batalkan Langganan', style: TextStyle(fontSize: 12)),
               ),
             ),
@@ -366,7 +367,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               padding: EdgeInsets.only(top: 8),
               child: Text(
                 'Langganan dibatalkan, akan berhenti otomatis setelah tanggal di atas.',
-                style: TextStyle(fontSize: 11, color: Colors.red),
+                style: TextStyle(fontSize: 11, color: AppColors.error),
               ),
             ),
         ],
@@ -391,7 +392,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         'Gagal',
         'Tidak bisa mengubah pengaturan: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.shade100,
+        backgroundColor: AppColors.errorSoft,
       );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
@@ -408,7 +409,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ),
         actions: [
           TextButton(onPressed: () => Get.back(result: false), child: const Text('Batal')),
-          TextButton(onPressed: () => Get.back(result: true), child: const Text('Ya, Batalkan', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Get.back(result: true), child: const Text('Ya, Batalkan', style: TextStyle(color: AppColors.error))),
         ],
       ),
     );
@@ -426,11 +427,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             ? 'Langganan dibatalkan & langsung nonaktif. Rp ${_formatRupiah(refundAmount)} saldo (80%) ditambahkan ke akun kamu.'
             : 'Langganan dibatalkan. Tidak ada dana kembali, tapi kamu masih bisa pakai fiturnya sampai masa aktif berakhir.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.shade100,
+        backgroundColor: AppColors.successSoft,
       );
     } catch (e) {
       Get.snackbar('Gagal', 'Tidak bisa membatalkan langganan: ${e.toString()}',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: AppColors.errorSoft);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -448,7 +449,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           'Berhasil!',
           'Paket ${result.tier} sekarang aktif.',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green.shade100,
+          backgroundColor: AppColors.successSoft,
         );
       } else {
         final shortfall = (result.required ?? 0) - (result.currentBalance ?? 0);
@@ -473,7 +474,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       }
     } catch (e) {
       Get.snackbar('Gagal', 'Terjadi kesalahan: ${e.toString()}',
-          snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red.shade100);
+          snackPosition: SnackPosition.BOTTOM, backgroundColor: AppColors.errorSoft);
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }

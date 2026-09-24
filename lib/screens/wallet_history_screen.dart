@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/subscription_service.dart';
@@ -42,21 +43,21 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
-        title: const Text('Riwayat Saldo', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text('Riwayat Saldo', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
       ),
       body: RefreshIndicator(
-        color: Colors.purple,
+        color: AppColors.primaryDeep,
         onRefresh: _loadHistory,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.purple))
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDeep))
             : _history.isEmpty
                 ? ListView(
                     children: const [
                       SizedBox(height: 120),
                       Center(
-                        child: Text('Belum ada riwayat perubahan saldo', style: TextStyle(color: Colors.grey)),
+                        child: Text('Belum ada riwayat perubahan saldo', style: TextStyle(color: AppColors.textSecondary)),
                       ),
                     ],
                   )
@@ -90,22 +91,22 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
     switch (type) {
       case 'topup_credit':
         icon = Icons.add_card;
-        color = Colors.green;
+        color = AppColors.success;
         label = 'Top Up';
         break;
       case 'subscription_debit':
         icon = Icons.workspace_premium_outlined;
-        color = Colors.purple;
+        color = AppColors.ink;
         label = 'Pembelian Subscription';
         break;
       case 'cancel_refund':
         icon = Icons.replay_circle_filled_outlined;
-        color = Colors.orange;
+        color = AppColors.warning;
         label = 'Refund Pembatalan';
         break;
       default:
         icon = Icons.swap_horiz;
-        color = Colors.grey;
+        color = AppColors.textSecondary;
         label = type;
     }
 
@@ -131,9 +132,9 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
                 Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 2),
                 if (description.isNotEmpty)
-                  Text(description, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                  Text(description, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
-                Text(formattedDate, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                Text(formattedDate, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -142,7 +143,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
-              color: isPositive ? Colors.green : Colors.red,
+              color: isPositive ? AppColors.success : AppColors.error,
             ),
           ),
         ],
