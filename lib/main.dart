@@ -1,6 +1,7 @@
 import 'package:bumble/authentication/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/controllers/profile_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -52,12 +53,61 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       navigatorKey: navigatorKey,
-      title: 'Bumble',
-      theme: ThemeData().copyWith(
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      title: 'Meetcha',
+      theme: _meetchaTheme,
       debugShowCheckedModeBanner: false,
       home: const WelcomeScreen(),
     );
   }
 }
+
+/// Tema global Meetcha. Widget bawaan Flutter (Slider, Switch, Checkbox,
+/// progress indicator, ElevatedButton, dll) otomatis mengikuti ini,
+/// jadi warna tidak perlu diatur satu-satu di tiap layar.
+final ThemeData _meetchaTheme = ThemeData(
+  useMaterial3: true,
+  scaffoldBackgroundColor: AppColors.background,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.lime,
+    primary: AppColors.primaryDeep,
+    onPrimary: Colors.white,
+    primaryContainer: AppColors.primary,
+    onPrimaryContainer: AppColors.onPrimary,
+    secondary: AppColors.green,
+    onSecondary: AppColors.ink,
+    error: AppColors.error,
+    surface: AppColors.background,
+    onSurface: AppColors.textPrimary,
+    outline: AppColors.border,
+  ),
+  appBarTheme: const AppBarTheme(
+    backgroundColor: AppColors.background,
+    foregroundColor: AppColors.ink,
+    elevation: 0,
+    surfaceTintColor: Colors.transparent,
+  ),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      foregroundColor: AppColors.onPrimary,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  ),
+  progressIndicatorTheme: const ProgressIndicatorThemeData(
+    color: AppColors.primaryDeep,
+  ),
+  chipTheme: ChipThemeData(
+    selectedColor: AppColors.primary,
+    checkmarkColor: AppColors.onPrimary,
+    side: const BorderSide(color: AppColors.border),
+  ),
+  sliderTheme: const SliderThemeData(
+    activeTrackColor: AppColors.primaryDeep,
+    thumbColor: AppColors.primaryDeep,
+    inactiveTrackColor: AppColors.primaryBorder,
+  ),
+  navigationBarTheme: NavigationBarThemeData(
+    indicatorColor: AppColors.primary,
+    backgroundColor: AppColors.background,
+  ),
+);
