@@ -88,7 +88,7 @@ class _FilterPreferenceScreenState extends State<FilterPreferenceScreen> {
             min: 18,
             max: 60,
             divisions: 42,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.primaryDeep,
             labels: RangeLabels(
               '${_ageRange.start.round()}',
               '${_ageRange.end.round()}',
@@ -105,7 +105,7 @@ class _FilterPreferenceScreenState extends State<FilterPreferenceScreen> {
             min: 1,
             max: 200,
             divisions: 199,
-            activeColor: AppColors.primary,
+            activeColor: AppColors.primaryDeep,
             label: '${_maxDistance.round()} km',
             onChanged: (v) => setState(() => _maxDistance = v),
           ),
@@ -116,14 +116,14 @@ class _FilterPreferenceScreenState extends State<FilterPreferenceScreen> {
             return Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: AppColors.warningSoft,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
+                border: Border.all(color: AppColors.warningBorder),
               ),
               child: Row(
                 children: [
                   const Icon(Icons.warning_amber_rounded,
-                      color: Colors.orange),
+                      color: AppColors.warning),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(

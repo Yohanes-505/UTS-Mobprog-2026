@@ -113,7 +113,7 @@ class SafeDatingTipsScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(tip.icon, color: Colors.black87),
+            Icon(tip.icon, color: AppColors.primaryDeep),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -125,7 +125,7 @@ class SafeDatingTipsScreen extends StatelessWidget {
                   Text(
                     tip.body,
                     style: TextStyle(
-                        fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+                        fontSize: 13, color: AppColors.textSecondary, height: 1.4),
                   ),
                 ],
               ),
