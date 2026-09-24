@@ -1,4 +1,5 @@
 import 'package:bumble/services/supabase_service.dart'; 
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart'; 
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -62,7 +63,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const SizedBox(height: 8),
               const Text(
                 "Enter your email and we'll send you a link to reset your password.",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 32),
               const Text("Email", style: TextStyle(fontWeight: FontWeight.w600)),
@@ -83,14 +84,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : handleForgotPassword,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: isLoading
                       ? const SizedBox(
                           width: 20, height: 20,
-                          child: CircularProgressIndicator(color: Colors.white))
+                          child: CircularProgressIndicator(color: AppColors.onPrimary))
                       : const Text("Send Reset Link",
-                          style: TextStyle(fontSize: 16, color: Colors.white)),
+                          style: TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],

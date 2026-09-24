@@ -1,84 +1,80 @@
 import 'package:bumble/authentication/login_screen.dart';
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+/// Layar pembuka Meetcha — latar teal gelap dengan aksen lime,
+/// mengikuti nuansa referensi desain.
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              height: 30, 
-              width: double.infinity, 
-              color: Colors.purple,
-            ),
+      backgroundColor: AppColors.ink,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const Spacer(flex: 3),
 
-            const SizedBox(
-              height: 200
-            ),
-
-            Image.asset(
-              "images/logo.png",
-              height: 120,
-              fit: BoxFit.contain,
-            ),
-
-            const SizedBox(
-              height: 30
-            ),
-
-            const Text(
-              "Welcome To Bamble!",
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+              Image.asset(
+                "images/logo.png",
+                height: 120,
+                fit: BoxFit.contain,
               ),
-            ),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 32),
 
-            const Text(
-              "Let's start your match up!",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
+              const Text(
+                "Welcome to Meetcha!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 35),
 
-            //button to login screen
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: SizedBox(
+              const SizedBox(height: 10),
+
+              const Text(
+                "Let's start your match up!",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.mist,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              const Spacer(flex: 4),
+
+              SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 54,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Get.to(() => const LoginScreen());
-                  },
+                  onPressed: () => Get.to(() => const LoginScreen()),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   child: const Text(
                     "Get Started",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
 }
-                                        
