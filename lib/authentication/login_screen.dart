@@ -1,4 +1,5 @@
 import 'package:bumble/services/supabase_service.dart';
+import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/services/profile_service.dart';
 import 'package:bumble/authentication/signup_screen.dart';
 import 'package:bumble/authentication/forgot_password_screen.dart';
@@ -93,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 "Login to your account",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary,
                 ),
               ),
 
@@ -155,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : handleLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -165,11 +166,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                            color: Colors.white),
+                            color: AppColors.onPrimary),
                         )
                       : const Text(
                           "Login",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700),
                         ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:bumble/services/supabase_service.dart';
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -109,7 +110,7 @@ class SignUpScreenState extends State<SignUpScreen> {
                 "Sign up to start your match up!",
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey,
+                  color: AppColors.textSecondary,
                 ),
               ),
 
@@ -192,7 +193,7 @@ class SignUpScreenState extends State<SignUpScreen> {
                 child: ElevatedButton(
                   onPressed: isLoading ? null : handleSignUp,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -201,11 +202,11 @@ class SignUpScreenState extends State<SignUpScreen> {
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white),
+                          child: CircularProgressIndicator(color: AppColors.onPrimary),
                         )
                       : const Text(
                           "Sign Up",
-                          style: TextStyle(fontSize: 16, color: Colors.white),
+                          style: TextStyle(fontSize: 16, color: AppColors.onPrimary, fontWeight: FontWeight.w700),
                         ),
                 ),
               ),
