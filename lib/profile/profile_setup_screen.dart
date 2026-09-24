@@ -26,9 +26,7 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
-  final ProfileController controller = Get.isRegistered<ProfileController>()
-      ? Get.find<ProfileController>()
-      : Get.put(ProfileController());
+  final ProfileController controller = ProfileController.to;
 
   final PageController _pageController = PageController();
   final TextEditingController nameController = TextEditingController();

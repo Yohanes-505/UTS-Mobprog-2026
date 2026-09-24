@@ -16,7 +16,7 @@ class FilterPreferenceScreen extends StatefulWidget {
 }
 
 class _FilterPreferenceScreenState extends State<FilterPreferenceScreen> {
-  final ProfileController controller = Get.find<ProfileController>();
+  final ProfileController controller = ProfileController.to;
 
   late Gender? _prefGender;
   late RangeValues _ageRange;

@@ -18,9 +18,7 @@ class ProfileTabScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.isRegistered<ProfileController>()
-        ? Get.find<ProfileController>()
-        : Get.put(ProfileController());
+    final controller = ProfileController.to;
 
     return Scaffold(
       appBar: AppBar(
