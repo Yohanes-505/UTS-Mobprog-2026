@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:bumble/models/profile_model.dart';
 import 'package:bumble/services/match_chat_service.dart';
 import 'package:bumble/screens/chat_screen.dart';
@@ -50,7 +51,7 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
               padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Text(
                 'Match Baru',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.orangeAccent),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryDeep),
               ),
             ),
             SizedBox(
@@ -63,7 +64,7 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
                   }
                   if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
-                      child: Text('Belum ada match baru.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      child: Text('Belum ada match baru.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                     );
                   }
 
@@ -125,7 +126,7 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
                   return const Padding(
                     padding: EdgeInsets.all(32.0),
                     child: Center(
-                      child: Text('Belum ada percakapan aktif.', style: TextStyle(color: Colors.grey)),
+                      child: Text('Belum ada percakapan aktif.', style: TextStyle(color: AppColors.textSecondary)),
                     ),
                   );
                 }
@@ -151,7 +152,7 @@ class _MatchChatScreenState extends State<MatchChatScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: chat['message'] == 'Mulai percakapan baru!' ? Colors.orangeAccent : Colors.grey,
+                          color: chat['message'] == 'Mulai percakapan baru!' ? AppColors.primaryDeep : AppColors.textSecondary,
                         ),
                       ),
                       onTap: () {

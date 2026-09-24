@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -100,8 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
             'It\'s a Match!',
             'Kamu dan ${profile.name} saling menyukai!',
             snackPosition: SnackPosition.BOTTOM,
-            backgroundColor: Colors.greenAccent,
-            colorText: Colors.black87,
+            backgroundColor: AppColors.primary,
+            colorText: AppColors.onPrimary,
           );
         } else {
           Get.snackbar(
@@ -154,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             "No more Daily Brew today \nCome back tomorrow!",
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
                       ],
