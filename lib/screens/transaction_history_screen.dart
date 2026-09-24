@@ -1,3 +1,4 @@
+import 'package:bumble/constants/app_colors.dart';
 // lib/screens/subscription/transaction_history_screen.dart
 //
 // Fix: sejak Hari 8, tabel transactions cuma untuk TOP UP (kolom tier
@@ -47,21 +48,21 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        foregroundColor: AppColors.ink,
         leading: IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back)),
-        title: const Text('Riwayat Transaksi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+        title: const Text('Riwayat Transaksi', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
       ),
       body: RefreshIndicator(
-        color: Colors.purple,
+        color: AppColors.primaryDeep,
         onRefresh: _loadHistory,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.purple))
+            ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDeep))
             : _transactions.isEmpty
                 ? ListView(
                     children: const [
                       SizedBox(height: 120),
                       Center(
-                        child: Text('Belum ada riwayat transaksi', style: TextStyle(color: Colors.grey)),
+                        child: Text('Belum ada riwayat transaksi', style: TextStyle(color: AppColors.textSecondary)),
                       ),
                     ],
                   )
@@ -106,7 +107,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
               children: [
                 Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 const SizedBox(height: 4),
-                Text(formattedDate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                Text(formattedDate, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 4),
                 Text('Rp $formattedAmount', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ],
@@ -124,24 +125,24 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
 
     switch (status) {
       case 'settlement':
-        color = Colors.green;
+        color = AppColors.success;
         label = 'Berhasil';
         break;
       case 'pending':
-        color = Colors.orange;
+        color = AppColors.warning;
         label = 'Menunggu';
         break;
       case 'expire':
-        color = Colors.grey;
+        color = AppColors.textSecondary;
         label = 'Kedaluwarsa';
         break;
       case 'cancel':
       case 'deny':
-        color = Colors.red;
+        color = AppColors.error;
         label = 'Gagal';
         break;
       default:
-        color = Colors.grey;
+        color = AppColors.textSecondary;
         label = status;
     }
 
