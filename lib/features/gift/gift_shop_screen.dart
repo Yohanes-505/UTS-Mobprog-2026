@@ -5,7 +5,10 @@ import '../../constants/app_colors.dart';
 import '../../services/gift_service.dart';
 
 class GiftShopScreen extends StatefulWidget {
-  const GiftShopScreen({Key? key}) : super(key: key);
+  final String? receiverId;
+  final String? receiverName;
+
+  const GiftShopScreen({super.key, this.receiverId, this.receiverName});
 
   @override
   State<GiftShopScreen> createState() => _GiftShopScreenState();
@@ -65,8 +68,8 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
       return;
     }
 
-    final userId = _supabase.auth.currentUser!.id;
-    final result = await _giftService.sendGiftToUser(giftId, userId);
+    final receiverId = widget.receiverId ?? _supabase.auth.currentUser!.id;
+    final result = await _giftService.sendGiftToUser(giftId, receiverId);
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result['message'])),
