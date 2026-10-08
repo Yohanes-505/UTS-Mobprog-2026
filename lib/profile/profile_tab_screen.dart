@@ -1,6 +1,7 @@
 import 'package:Meetcha/authentication/welcome_screen.dart';
 import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/controllers/profile_controller.dart';
+import 'package:Meetcha/features/wellbeing/safety_center_screen.dart';
 import 'package:Meetcha/models/profile_model.dart';
 import 'package:Meetcha/profile/blocked_users_screen.dart';
 import 'package:Meetcha/profile/edit_profile_screen.dart';
@@ -20,7 +21,7 @@ final _faceRefresh = 0.obs;
 
 /// Node flowchart: "Tab: Profile".
 /// Berisi ringkasan profil + pintu masuk ke Edit Profil & Foto,
-/// Filter Preferensi, Subscription, dan Safe Dating Tips.
+/// Filter Preferensi, Subscription, Safety Center, dan Safe Dating Tips.
 class ProfileTabScreen extends StatelessWidget {
   const ProfileTabScreen({super.key});
 
@@ -114,6 +115,14 @@ class ProfileTabScreen extends StatelessWidget {
                   },
                 );
               }),
+              // Safety Center (SDG 3): check-in mood, waktu layar,
+              // dan bantuan darurat.
+              _menuTile(
+                icon: Icons.shield_outlined,
+                title: 'Safety Center',
+                subtitle: 'Check-in mood, waktu layar & bantuan darurat',
+                onTap: () => Get.to(() => const SafetyCenterScreen()),
+              ),
               _menuTile(
                 icon: Icons.health_and_safety_outlined,
                 title: 'Safe Dating Tips',
