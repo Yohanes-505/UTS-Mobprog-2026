@@ -73,7 +73,7 @@ class MatchChatService {
           profile: profiles[e.key]!,
           matchedAt: e.value.matchedAt,
           matchIds: List<String>.unmodifiable(e.value.ids),
-          lastMessage: last?.text,
+          lastMessage: last?.previewText,
           lastMessageAt: last?.createdAt,
           lastMessageIsMine: last?.senderId == myId,
           activityKnown: res.ok,
@@ -278,6 +278,15 @@ class MatchChatService {
         .single()
         .timeout(const Duration(seconds: 15));
     return ChatMessage.fromMap(row);
+  }
+
+  /// Kirim pesan gift ke match [otherId]. Di chat tampil sebagai kartu gift.
+  Future<void> sendGiftMessage({
+    required String otherId,
+    required String giftName,
+  }) async {
+    final room = await openRoom(otherId);
+    await sendMessage(room: room, text: ChatMessage.giftText(giftName));
   }
 
   Future<void> markMessagesRead(ChatRoom room) async {

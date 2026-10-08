@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:Meetcha/constants/app_colors.dart';
+import 'package:Meetcha/features/gift/gift_shop_screen.dart';
 import 'package:Meetcha/models/chat_message.dart';
 import 'package:Meetcha/models/profile_model.dart';
 import 'package:Meetcha/models/report_model.dart';
@@ -592,6 +593,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   bool get _isExpired => _remaining == Duration.zero;
 
+  /// Buka Gift Shop untuk mengirim gift ke match di chat ini.
+  void _openGiftShop() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GiftShopScreen(
+          receiverId: widget.matchProfile.id,
+          receiverName: widget.matchProfile.name,
+        ),
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
     final profile = widget.matchProfile;
 
@@ -667,6 +680,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ],
       ),
       actions: [
+        _HeaderIconButton(
+          icon: Icons.card_giftcard_rounded,
+          onTap: _openGiftShop,
+        ),
+        const SizedBox(width: 8),
         PopupMenuButton<String>(
           tooltip: 'Opsi',
           color: Colors.white,
@@ -1037,15 +1055,18 @@ class _MessageBubble extends StatelessWidget {
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          Text(
-            message.text,
-            style: TextStyle(
-              color: isMe ? Colors.white : AppColors.textPrimary,
-              fontSize: 13.5,
-              height: 1.36,
-              fontWeight: FontWeight.w400,
+          if (message.isGift)
+            _GiftContent(giftName: message.giftName, isMe: isMe)
+          else
+            Text(
+              message.text,
+              style: TextStyle(
+                color: isMe ? Colors.white : AppColors.textPrimary,
+                fontSize: 13.5,
+                height: 1.36,
+                fontWeight: FontWeight.w400,
+              ),
             ),
-          ),
           const SizedBox(height: 3),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -1099,6 +1120,61 @@ class _MessageBubble extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Isi bubble untuk pesan gift (ikon + nama gift).
+class _GiftContent extends StatelessWidget {
+  final String giftName;
+  final bool isMe;
+
+  const _GiftContent({required this.giftName, required this.isMe});
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = isMe ? Colors.white : AppColors.textPrimary;
+    final accent = isMe ? Colors.white : Colors.pinkAccent;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: isMe ? 0.2 : 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.card_giftcard_rounded, color: accent, size: 22),
+        ),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isMe ? 'Kamu mengirim gift' : 'Mengirim gift untukmu',
+                style: TextStyle(
+                  color: fg.withValues(alpha: 0.75),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                giftName,
+                style: TextStyle(
+                  color: fg,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

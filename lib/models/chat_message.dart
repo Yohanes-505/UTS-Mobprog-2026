@@ -46,6 +46,19 @@ class ChatMessage {
     );
   }
 
+  /// Pesan gift disimpan di tabel `messages` sebagai teks biasa dengan
+  /// penanda di depannya, jadi tabel tidak perlu diubah.
+  static const String giftPrefix = '[[gift]]';
+
+  static String giftText(String giftName) => '$giftPrefix$giftName';
+
+  bool get isGift => text.startsWith(giftPrefix);
+
+  String get giftName => isGift ? text.substring(giftPrefix.length) : '';
+
+  /// Teks yang aman ditampilkan di daftar chat (preview pesan terakhir).
+  String get previewText => isGift ? '🎁 Gift: $giftName' : text;
+
   bool get isRead => status == MessageStatus.read;
   bool get isPending =>
       status == MessageStatus.sending ||

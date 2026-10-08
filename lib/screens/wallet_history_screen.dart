@@ -88,7 +88,7 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
     late Color color;
     late String label;
 
-    switch (type) {
+        switch (type) {
       case 'topup_credit':
         icon = Icons.add_card;
         color = AppColors.success;
@@ -103,6 +103,11 @@ class _WalletHistoryScreenState extends State<WalletHistoryScreen> {
         icon = Icons.replay_circle_filled_outlined;
         color = AppColors.warning;
         label = 'Refund Pembatalan';
+        break;
+      case 'convert_gift':
+        icon = Icons.card_giftcard;
+        color = AppColors.success;
+        label = 'Konversi Gift';
         break;
       default:
         icon = Icons.swap_horiz;
