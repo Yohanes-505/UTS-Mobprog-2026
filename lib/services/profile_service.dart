@@ -177,8 +177,36 @@ class ProfileService {
       'nearby_profiles',
       params: {'p_limit': limit},
     );
+    return _toProfiles(result);
+  }
+
+  /// Daily Brew hari ini (maks. limit profil) dari RPC `get_daily_brew`.
+  /// Batch dibuat sekali per hari di server dan disimpan di tabel
+  /// `daily_brews`. Profil yang sudah di-swipe tidak dikembalikan lagi,
+  /// jadi list kosong berarti Brew hari ini memang sudah habis.
+  Future<List<ProfileModel>> getDailyBrew({int limit = 5}) async {
+    final result = await supabase.rpc(
+      'get_daily_brew',
+      params: {'p_limit': limit},
+    );
+    return _toProfiles(result);
+  }
+
+  /// Kandidat untuk tab Suggested dari RPC `get_suggested`.
+  /// Filter preferensi, exclusion swipe/blok, dan pengecualian anggota
+  /// Brew hari ini semuanya dikerjakan di server.
+  Future<List<ProfileModel>> getSuggested({int limit = 10}) async {
+    final result = await supabase.rpc(
+      'get_suggested',
+      params: {'p_limit': limit},
+    );
+    return _toProfiles(result);
+  }
+
+  static List<ProfileModel> _toProfiles(dynamic result) {
+    if (result == null) return const [];
     return (result as List)
-        .map((e) => ProfileModel.fromMap(Map<String, dynamic>.from(e)))
+        .map((e) => ProfileModel.fromMap(Map<String, dynamic>.from(e as Map)))
         .toList();
   }
 
