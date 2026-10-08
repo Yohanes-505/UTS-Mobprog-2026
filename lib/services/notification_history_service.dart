@@ -72,4 +72,29 @@ class NotificationHistoryService {
       debugPrint('Gagal tandai semua notifikasi dibaca: $e');
     }
   }
+
+  // hapus 1 notifikasi
+  Future<bool> deleteNotification(String id) async {
+    try {
+      await _client.from(_table).delete().eq('id', id);
+      return true;
+    } catch (e) {
+      debugPrint('Gagal hapus notifikasi: $e');
+      return false;
+    }
+  }
+
+  // hapus semua notifikasi
+  Future<bool> deleteAll() async {
+    final userId = _myId;
+    if (userId == null) return false;
+
+    try {
+      await _client.from(_table).delete().eq('user_id', userId);
+      return true;
+    } catch (e) {
+      debugPrint('Gagal hapus semua notifikasi: $e');
+      return false;
+    }
+  }
 }
