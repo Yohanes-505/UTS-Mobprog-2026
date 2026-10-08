@@ -1,5 +1,17 @@
 enum AppNotificationType { match, message, unknown }
 
+String notificationBodyText(String body) {
+  const giftPrefix = '[[gift]]';
+  const imagePrefix = 'img::';
+
+  if (body.startsWith(giftPrefix)) {
+    return '🎁 Gift: ${body.substring(giftPrefix.length)}';
+  }
+  if (body.startsWith(imagePrefix)) return '📷 Foto';
+  return body;
+}
+
+
 class AppNotification {
   final AppNotificationType type;
   final String title;
@@ -33,7 +45,7 @@ class AppNotification {
     return AppNotification(
       type: type,
       title: data['title']?.toString() ?? 'Notifikasi Baru',
-      body: data['body']?.toString() ?? '',
+      body: notificationBodyText(data['body']?.toString() ?? ''),
       relatedId: data['related_id']?.toString(),
     );
   }

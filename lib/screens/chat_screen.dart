@@ -17,6 +17,7 @@ import 'package:Meetcha/widgets/verified_badge.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -315,6 +316,81 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _processQueue();
   }
 
+  void _showAttachSheet() {
+    if (_room == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Pilih dari galeri'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickAndSendImage(ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Ambil foto'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickAndSendImage(ImageSource.camera);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    final room = _room;
+    final myId = _myId;
+    if (room == null || myId == null) return;
+    if (_isExpired) {
+      _exitIfExpired();
+      return;
+    }
+
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+      if (picked == null || !mounted) return;
+
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+
+      final dot = picked.name.lastIndexOf('.');
+      final extension = dot == -1
+          ? 'jpg'
+          : picked.name.substring(dot + 1).toLowerCase();
+
+      final local = ChatMessage.localImage(
+        matchId: room.primaryMatchId,
+        senderId: myId,
+        bytes: bytes,
+        extension: extension,
+      );
+      setState(() => _messages.insert(0, local));
+      _scrollToBottom();
+      _processQueue();
+    } catch (e) {
+      debugPrint('Gagal memilih foto: $e');
+      if (!mounted) return;
+      Get.snackbar(
+        'Gagal memilih foto',
+        'Periksa izin akses galeri atau kamera lalu coba lagi.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
+  }
+
   ChatMessage? _nextQueued() {
     for (var i = _messages.length - 1; i >= 0; i--) {
       final m = _messages[i];
@@ -336,8 +412,42 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (room == null || next == null) break;
 
         _setStatus(next.id, MessageStatus.sending);
+
+        var outgoing = next;
+        if (next.localBytes != null && next.imageUrl == null) {
+          try {
+            final url = await _service.uploadChatImage(
+              bytes: next.localBytes!,
+              extension: next.localExtension,
+            );
+            if (!mounted) return;
+            outgoing = next.copyWith(text: ChatMessage.encodeImage(url));
+            _setText(next.id, outgoing.text);
+          } catch (e) {
+            debugPrint('Gagal mengunggah foto: $e');
+            if (!mounted) return;
+
+            if (isNetworkError(e)) {
+              _setStatus(next.id, MessageStatus.offline);
+              _markQueuedOffline();
+              break;
+            }
+
+            _setStatus(next.id, MessageStatus.failed);
+            Get.snackbar(
+              'Gagal mengunggah foto',
+              friendlyError(e),
+              snackPosition: SnackPosition.BOTTOM,
+            );
+            continue;
+          }
+        }
+
         try {
-          final sent = await _service.sendMessage(room: room, text: next.text);
+          final sent = await _service.sendMessage(
+            room: room,
+            text: outgoing.text,
+          );
           if (!mounted) return;
           _resolveLocal(next.id, sent);
         } catch (e) {
@@ -381,6 +491,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final i = _messages.indexWhere((m) => m.id == id);
     if (i == -1 || _messages[i].status == status) return;
     setState(() => _messages[i] = _messages[i].copyWith(status: status));
+  }
+
+  void _setText(String id, String text) {
+    if (!mounted) return;
+    final i = _messages.indexWhere((m) => m.id == id);
+    if (i == -1) return;
+    setState(() => _messages[i] = _messages[i].copyWith(text: text));
   }
 
   void _markQueuedOffline() {
@@ -979,6 +1096,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
+                          _AttachButton(
+                            enabled: canUseInput,
+                            onTap: _showAttachSheet,
+                          ),
                         ],
                       ),
                     ),
@@ -1022,10 +1143,14 @@ class _MessageBubble extends StatelessWidget {
 
     final dimmed = isMe && (status == MessageStatus.sending || needsAttention);
 
+    final hasImage = message.isImage;
+
     final bubble = Container(
       constraints: BoxConstraints(maxWidth: maxWidth),
       margin: EdgeInsets.only(top: compactTop ? 1.5 : 3, bottom: 3),
-      padding: const EdgeInsets.fromLTRB(13, 9, 11, 7),
+      padding: hasImage
+          ? const EdgeInsets.fromLTRB(4, 4, 4, 6)
+          : const EdgeInsets.fromLTRB(13, 9, 11, 7),
       decoration: BoxDecoration(
         color: isMe
             ? AppColors.matchaDeep.withValues(alpha: dimmed ? 0.68 : 1)
@@ -1057,6 +1182,8 @@ class _MessageBubble extends StatelessWidget {
         children: [
           if (message.isGift)
             _GiftContent(giftName: message.giftName, isMe: isMe)
+          else if (hasImage)
+            _ChatImage(message: message, width: maxWidth - 8)
           else
             Text(
               message.text,
@@ -1068,29 +1195,42 @@ class _MessageBubble extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 3),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                formatClock(message.createdAt),
-                style: TextStyle(
-                  fontSize: 9.5,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
-                  color: isMe
-                      ? Colors.white.withValues(alpha: 0.7)
-                      : AppColors.textSecondary.withValues(alpha: 0.78),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: hasImage ? 7 : 0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  formatClock(message.createdAt),
+                  style: TextStyle(
+                    fontSize: 9.5,
+                    height: 1,
+                    fontWeight: FontWeight.w500,
+                    color: isMe
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : AppColors.textSecondary.withValues(alpha: 0.78),
+                  ),
                 ),
-              ),
-              if (isMe) ...[
-                const SizedBox(width: 4),
-                _StatusIcon(status: status),
+                if (isMe) ...[
+                  const SizedBox(width: 4),
+                  _StatusIcon(status: status),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),
     );
+
+    final VoidCallback? onBubbleTap =
+        onTapPending ??
+        (hasImage && !message.isPending
+            ? () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => _ImageViewerScreen(message: message),
+                ),
+              )
+            : null);
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -1100,7 +1240,7 @@ class _MessageBubble extends StatelessWidget {
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          GestureDetector(onTap: onTapPending, child: bubble),
+          GestureDetector(onTap: onBubbleTap, child: bubble),
           if (isMe && (showStatusLabel || needsAttention))
             Padding(
               padding: const EdgeInsets.only(top: 1, right: 2, bottom: 2),
@@ -1175,6 +1315,114 @@ class _GiftContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ChatImage extends StatelessWidget {
+  final ChatMessage message;
+  final double width;
+
+  const _ChatImage({required this.message, required this.width});
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = message.localBytes;
+    final url = message.imageUrl;
+    final uploading = message.status == MessageStatus.sending && bytes != null;
+
+    final Widget image = bytes != null
+        ? Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true)
+        : Image.network(
+            url!,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return const Center(
+                child: CupertinoActivityIndicator(
+                  radius: 11,
+                  color: AppColors.matchaDeep,
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) => const Center(
+              child: Icon(
+                Icons.broken_image_outlined,
+                size: 28,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(13),
+      child: SizedBox(
+        width: width,
+        height: width * 0.78,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: AppColors.surfaceMuted, child: image),
+            if (uploading)
+              Container(
+                color: Colors.black.withValues(alpha: 0.28),
+                child: const Center(
+                  child: CupertinoActivityIndicator(
+                    radius: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImageViewerScreen extends StatelessWidget {
+  final ChatMessage message;
+
+  const _ImageViewerScreen({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final bytes = message.localBytes;
+    final url = message.imageUrl;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          minScale: 1,
+          maxScale: 5,
+          child: bytes != null
+              ? Image.memory(bytes, fit: BoxFit.contain)
+              : Image.network(
+                  url!,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const CupertinoActivityIndicator(
+                      radius: 13,
+                      color: Colors.white,
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => const Icon(
+                    Icons.broken_image_outlined,
+                    size: 40,
+                    color: Colors.white54,
+                  ),
+                ),
+        ),
+      ),
     );
   }
 }
@@ -1528,6 +1776,47 @@ class _EmojiToggleButtonState extends State<_EmojiToggleButton> {
                   ? AppColors.textSecondary
                   : AppColors.border,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AttachButton extends StatefulWidget {
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _AttachButton({required this.enabled, required this.onTap});
+
+  @override
+  State<_AttachButton> createState() => _AttachButtonState();
+}
+
+class _AttachButtonState extends State<_AttachButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: widget.enabled ? (_) => setState(() => _pressed = true) : null,
+      onTapCancel: widget.enabled
+          ? () => setState(() => _pressed = false)
+          : null,
+      onTapUp: widget.enabled ? (_) => setState(() => _pressed = false) : null,
+      onTap: widget.enabled ? widget.onTap : null,
+      child: AnimatedScale(
+        scale: _pressed ? 0.9 : 1,
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeOutCubic,
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(
+            Icons.image_outlined,
+            size: 21,
+            color: widget.enabled ? AppColors.textSecondary : AppColors.border,
           ),
         ),
       ),

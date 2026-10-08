@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 enum MessageStatus { sending, offline, failed, sent, read }
 class ChatMessage {
   static const String localPrefix = 'local-';
+  static const String imagePrefix = 'img::';
 
   final String id;
   final String matchId;
@@ -8,6 +11,8 @@ class ChatMessage {
   final String text;
   final DateTime createdAt;
   final MessageStatus status;
+  final Uint8List? localBytes;
+  final String localExtension;
 
   const ChatMessage({
     required this.id,
@@ -16,6 +21,8 @@ class ChatMessage {
     required this.text,
     required this.createdAt,
     this.status = MessageStatus.sent,
+    this.localBytes,
+    this.localExtension = 'jpg',
   });
 
   factory ChatMessage.local({
@@ -34,6 +41,25 @@ class ChatMessage {
     );
   }
 
+  factory ChatMessage.localImage({
+    required String matchId,
+    required String senderId,
+    required Uint8List bytes,
+    required String extension,
+  }) {
+    final now = DateTime.now();
+    return ChatMessage(
+      id: '$localPrefix${now.microsecondsSinceEpoch}',
+      matchId: matchId,
+      senderId: senderId,
+      text: '',
+      createdAt: now,
+      status: MessageStatus.sending,
+      localBytes: bytes,
+      localExtension: extension,
+    );
+  }
+
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
     return ChatMessage(
       id: map['id'].toString(),
@@ -46,6 +72,13 @@ class ChatMessage {
     );
   }
 
+  static String encodeImage(String url) => '$imagePrefix$url';
+
+  String? get imageUrl =>
+      text.startsWith(imagePrefix) ? text.substring(imagePrefix.length) : null;
+
+  bool get isImage => imageUrl != null || localBytes != null;
+
   /// Pesan gift disimpan di tabel `messages` sebagai teks biasa dengan
   /// penanda di depannya, jadi tabel tidak perlu diubah.
   static const String giftPrefix = '[[gift]]';
@@ -57,7 +90,11 @@ class ChatMessage {
   String get giftName => isGift ? text.substring(giftPrefix.length) : '';
 
   /// Teks yang aman ditampilkan di daftar chat (preview pesan terakhir).
-  String get previewText => isGift ? '🎁 Gift: $giftName' : text;
+  String get previewText {
+    if (isImage) return '📷 Foto';
+    if (isGift) return '🎁 Gift: $giftName';
+    return text;
+  }
 
   bool get isRead => status == MessageStatus.read;
   bool get isPending =>
@@ -65,14 +102,16 @@ class ChatMessage {
       status == MessageStatus.offline ||
       status == MessageStatus.failed;
 
-  ChatMessage copyWith({MessageStatus? status}) {
+  ChatMessage copyWith({MessageStatus? status, String? text}) {
     return ChatMessage(
       id: id,
       matchId: matchId,
       senderId: senderId,
-      text: text,
+      text: text ?? this.text,
       createdAt: createdAt,
       status: status ?? this.status,
+      localBytes: localBytes,
+      localExtension: localExtension,
     );
   }
 }

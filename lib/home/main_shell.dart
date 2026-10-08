@@ -183,12 +183,18 @@ class _MeetchaBottomNavigation extends StatelessWidget {
                       ),
                     ),
                     Expanded(
-                      child: _NavigationItem(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        selectedIcon: Icons.chat_bubble_rounded,
-                        label: 'Match',
-                        selected: selectedIndex == 3,
-                        onTap: () => onChanged(3),
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: MatchChatService.unreadTotal,
+                        builder: (context, total, child) {
+                          return _NavigationItem(
+                            icon: Icons.chat_bubble_outline_rounded,
+                            selectedIcon: Icons.chat_bubble_rounded,
+                            label: 'Match',
+                            selected: selectedIndex == 3,
+                            badgeCount: total,
+                            onTap: () => onChanged(3),
+                          );
+                        },
                       ),
                     ),
                     Expanded(
@@ -217,6 +223,7 @@ class _NavigationItem extends StatefulWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final int badgeCount;
 
   const _NavigationItem({
     required this.icon,
@@ -224,6 +231,7 @@ class _NavigationItem extends StatefulWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   @override
@@ -257,35 +265,69 @@ class _NavigationItemState extends State<_NavigationItem> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedScale(
-                scale: widget.selected ? 1.06 : 1,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeOutCubic,
-                  transitionBuilder: (child, animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: ScaleTransition(
-                        scale: Tween<double>(
-                          begin: 0.88,
-                          end: 1,
-                        ).animate(animation),
-                        child: child,
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  AnimatedScale(
+                    scale: widget.selected ? 1.06 : 1,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 180),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeOutCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: ScaleTransition(
+                            scale: Tween<double>(
+                              begin: 0.88,
+                              end: 1,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Icon(
+                        widget.selected ? widget.selectedIcon : widget.icon,
+                        key: ValueKey(widget.selected),
+                        size: 23,
+                        color: widget.selected
+                            ? AppColors.matchaDeep
+                            : AppColors.textSecondary,
                       ),
-                    );
-                  },
-                  child: Icon(
-                    widget.selected ? widget.selectedIcon : widget.icon,
-                    key: ValueKey(widget.selected),
-                    size: 23,
-                    color: widget.selected
-                        ? AppColors.matchaDeep
-                        : AppColors.textSecondary,
+                    ),
                   ),
-                ),
+                  if (widget.badgeCount > 0)
+                    Positioned(
+                      top: -5,
+                      right: -10,
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          widget.badgeCount > 99
+                              ? '99+'
+                              : '${widget.badgeCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            height: 1,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               AnimatedDefaultTextStyle(

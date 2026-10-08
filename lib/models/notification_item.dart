@@ -42,7 +42,7 @@ class NotificationItem {
       id: map['id'].toString(),
       type: type,
       title: map['title']?.toString() ?? 'Notifikasi',
-      body: map['body']?.toString() ?? '',
+      body: notificationBodyText(map['body']?.toString() ?? ''),
       relatedId: map['related_id']?.toString(),
       isRead: map['is_read'] == true,
       createdAt:
