@@ -3,8 +3,11 @@ import 'package:Meetcha/models/profile_model.dart';
 import 'package:Meetcha/models/report_model.dart';
 import 'package:Meetcha/services/swipe_service.dart';
 import 'package:Meetcha/widgets/block_confirm_dialog.dart';
+import 'package:Meetcha/widgets/interest_chip.dart';
 import 'package:Meetcha/widgets/report_bottom_sheet.dart';
 import 'package:Meetcha/widgets/verified_badge.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -216,7 +219,16 @@ class _SingleProfileViewState extends State<SingleProfileView>
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Foto maksimal persegi dan tidak lebih dari separuh tinggi area,
+        // supaya kartu info + tombol Pass/Like muat tanpa saling menimpa.
+        final photoHeight = math
+            .min(constraints.maxWidth - 32, constraints.maxHeight * 0.5)
+            .clamp(260.0, 600.0)
+            .toDouble();
+
+        return Stack(
       children: [
         RefreshIndicator(
           color: AppColors.matchaDeep,
@@ -238,8 +250,8 @@ class _SingleProfileViewState extends State<SingleProfileView>
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Text(
                     widget.remaining > 1
-                        ? '${widget.remaining} picks left today'
-                        : 'Last pick for today',
+                        ? '${widget.remaining} profiles to explore'
+                        : 'Last profile to explore',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
@@ -248,7 +260,7 @@ class _SingleProfileViewState extends State<SingleProfileView>
                     ),
                   ),
                 ),
-                _buildPhoto(),
+                _buildPhoto(photoHeight),
                 const SizedBox(height: 14),
                 _buildInfoCard(),
               ],
@@ -283,14 +295,16 @@ class _SingleProfileViewState extends State<SingleProfileView>
           ),
         ),
       ],
+        );
+      },
     );
   }
 
-  Widget _buildPhoto() {
+  Widget _buildPhoto(double height) {
     final photos = widget.profile.photoUrls;
 
-    return AspectRatio(
-      aspectRatio: 4 / 5,
+    return SizedBox(
+      height: height,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
@@ -415,6 +429,7 @@ class _SingleProfileViewState extends State<SingleProfileView>
   Widget _buildInfoCard() {
     final profile = widget.profile;
     final bio = (profile.bio ?? '').trim();
+    final interestMatch = InterestMatch.forProfile(profile.interests);
 
     final locationParts = <String>[
       if ((profile.city ?? '').trim().isNotEmpty) profile.city!.trim(),
@@ -495,11 +510,20 @@ class _SingleProfileViewState extends State<SingleProfileView>
             ),
           if (profile.interests.isNotEmpty) ...[
             if (locationParts.isNotEmpty) const SizedBox(height: 16),
+            if (interestMatch.sharedCount > 0) ...[
+              SharedInterestsLabel(count: interestMatch.sharedCount),
+              const SizedBox(height: 10),
+            ],
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: profile.interests
-                  .map((interest) => _InterestChip(label: interest))
+              children: interestMatch.ordered
+                  .map(
+                    (interest) => InterestChip(
+                      label: interest,
+                      highlighted: interestMatch.isShared(interest),
+                    ),
+                  )
                   .toList(),
             ),
           ],
@@ -546,35 +570,6 @@ class _SingleProfileViewState extends State<SingleProfileView>
           Icons.person_rounded,
           size: 48,
           color: AppColors.matchaDeep,
-        ),
-      ),
-    );
-  }
-}
-
-class _InterestChip extends StatelessWidget {
-  final String label;
-
-  const _InterestChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.matchaSoft.withValues(alpha: 0.52),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: AppColors.primaryBorder.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.matchaDeep,
-          fontSize: 12.5,
-          height: 1,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
