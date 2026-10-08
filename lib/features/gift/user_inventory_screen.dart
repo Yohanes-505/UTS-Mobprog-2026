@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/app_colors.dart';
 import '../../services/gift_service.dart';
+import 'send_inventory_gift.dart';
 
 class UserInventoryScreen extends StatefulWidget {
   const UserInventoryScreen({Key? key}) : super(key: key);
@@ -22,6 +23,15 @@ class _UserInventoryScreenState extends State<UserInventoryScreen> {
   void initState() {
     super.initState();
     _fetchInventory();
+  }
+
+  Future<void> _sendToMatch(String userGiftId, String giftName) async {
+    final sent = await sendInventoryGiftToMatch(
+      context,
+      userGiftId: userGiftId,
+      giftName: giftName,
+    );
+    if (sent && mounted) await _fetchInventory(); // refresh list inventori
   }
 
   Future<void> _fetchInventory() async {
@@ -165,7 +175,7 @@ class _UserInventoryScreenState extends State<UserInventoryScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                                                    const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -174,6 +184,29 @@ class _UserInventoryScreenState extends State<UserInventoryScreen> {
                               child: const Text(
                                 'Convert ke Saldo',
                                 style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _sendToMatch(
+                                item['id'].toString(),
+                                giftDetail['name'].toString(),
+                              ),
+                              icon: const Icon(Icons.send_rounded, size: 18),
+                              label: const Text(
+                                'Kirim ke Match',
+                                style: TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.matchaDeep,
+                                side: const BorderSide(color: AppColors.matchaDeep),
+                                minimumSize: const Size.fromHeight(44),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                             ),
                           ),
