@@ -6,6 +6,7 @@ import 'package:Meetcha/screens/subscription_screen.dart';
 import 'package:Meetcha/services/block_service.dart';
 import 'package:Meetcha/services/profile_service.dart';
 import 'package:Meetcha/services/swipe_service.dart';
+import 'package:Meetcha/services/tier_service.dart';
 import 'package:Meetcha/widgets/match_dialog.dart';
 import 'package:Meetcha/widgets/profile_card_widget.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,6 +19,20 @@ import 'package:Meetcha/features/gift/gift_shop_screen.dart';
 import 'package:Meetcha/features/gift/user_inventory_screen.dart';
 
 final _supabaseClient = Supabase.instance.client;
+
+/// Snackbar dengan gaya seragam untuk seluruh layar Home.
+void _showSnack(String title, String message, {Duration? duration}) {
+  Get.snackbar(
+    title,
+    message,
+    snackPosition: SnackPosition.BOTTOM,
+    margin: const EdgeInsets.all(16),
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    colorText: AppColors.textPrimary,
+    duration: duration ?? const Duration(seconds: 3),
+  );
+}
 
 class HomeScreen extends StatefulWidget {
   /// `scroll` = daftar Daily Brew (tab Brew),
@@ -169,78 +184,30 @@ class _HomeScreenState extends State<HomeScreen> {
         throw StateError('Sesi berakhir. Silakan login ulang.');
       }
 
-      final swiped = await _supabaseClient
-          .from('swipes')
-          .select('swiped_id')
-          .eq('swiper_id', myId);
-
-      final swipedIds = (swiped as List)
-          .map((item) => item['swiped_id'].toString())
-          .toList();
-
-      // User yang saling block tidak ditampilkan lagi.
-      final hiddenIds = await BlockService.getHiddenUserIds(myId);
-
-      final excludedIds = {...swipedIds, ...hiddenIds}.toList();
-
-      // Kandidat diambil lewat RPC `nearby_profiles` yang menerapkan filter
-      // preferensi (gender, usia, jarak). Limit besar karena profil yang
-      // sudah di-swipe / diblok dibuang di sini, bukan di server.
-      List<ProfileModel> candidates;
-
+      // Cara utama: RPC `get_daily_brew` + `get_suggested`. Filter
+      // preferensi, exclusion swipe/blok, dan batas harian dikerjakan
+      // di server, jadi Brew tetap sama sampai besok.
       try {
-        final nearby = await const ProfileService().getNearbyProfiles(
-          limit: 200,
-        );
+        const service = ProfileService();
+        final results = await Future.wait([
+          service.getDailyBrew(limit: dailyLimit),
+          service.getSuggested(limit: suggestedLimit),
+        ]);
 
-        final excluded = excludedIds.toSet();
+        if (!mounted) return;
 
-        candidates = nearby
-            .where((p) => p.id != myId && !excluded.contains(p.id))
-            .toList();
+        setState(() {
+          dailyBrew = results[0];
+          suggested = results[1];
+          isLoading = false;
+        });
+        return;
       } catch (e) {
-        // RPC belum ada / error: pakai query tabel + filter di client.
-        debugPrint('nearby_profiles gagal, pakai fallback: $e');
-
-        var query = _supabaseClient.from('profiles').select().neq('id', myId);
-
-        if (excludedIds.isNotEmpty) {
-          query = query.not('id', 'in', excludedIds);
-        }
-
-        final result = await query.limit(100);
-        final me = ProfileController.to.me;
-
-        candidates = (result as List)
-            .map((item) => ProfileModel.fromMap(item))
-            .where((p) => _passesMyPreferences(p, me))
-            .toList();
+        // RPC belum dibuat / error: pakai cara lama di bawah.
+        debugPrint('RPC daily brew gagal, pakai cara lama: $e');
       }
 
-      // Hanya tampilkan profil yang punya minimal satu foto.
-      if (requirePhoto) {
-        candidates = candidates.where(_hasPhoto).toList();
-      }
-
-      // Diacak agar Daily Brew bervariasi.
-      candidates.shuffle();
-
-      if (!mounted) return;
-
-      final brew = candidates.take(dailyLimit).toList();
-
-      // Suggested diambil dari sisa kandidat, jadi tidak sama dengan Brew.
-      final rest = candidates.skip(dailyLimit).take(suggestedLimit).toList();
-
-      setState(() {
-        dailyBrew = brew;
-
-        // Hanya kalau kandidat tidak cukup, pakai ulang profil Brew
-        // supaya tab Suggested tidak kosong.
-        suggested = rest.isNotEmpty ? rest : List.of(brew);
-
-        isLoading = false;
-      });
+      await _fetchCandidatesLegacy(myId);
     } catch (e) {
       debugPrint('Error fetching daily brew: $e');
 
@@ -250,16 +217,85 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
 
-      Get.snackbar(
-        'Tidak dapat memuat Daily Brew',
-        'Coba lagi beberapa saat.',
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 16,
-        backgroundColor: Colors.white,
-        colorText: AppColors.textPrimary,
-      );
+      _showSnack('Tidak dapat memuat Daily Brew', 'Coba lagi beberapa saat.');
     }
+  }
+
+  /// Cara lama (sebelum ada RPC `get_daily_brew`). Dipertahankan sebagai
+  /// cadangan kalau fungsi SQL di Supabase belum dijalankan.
+  Future<void> _fetchCandidatesLegacy(String myId) async {
+    final swiped = await _supabaseClient
+        .from('swipes')
+        .select('swiped_id')
+        .eq('swiper_id', myId);
+
+    final swipedIds = (swiped as List)
+        .map((item) => item['swiped_id'].toString())
+        .toList();
+
+    // User yang saling block tidak ditampilkan lagi.
+    final hiddenIds = await BlockService.getHiddenUserIds(myId);
+
+    final excludedIds = {...swipedIds, ...hiddenIds}.toList();
+
+    // Kandidat diambil lewat RPC `nearby_profiles` yang menerapkan filter
+    // preferensi (gender, usia, jarak). Limit besar karena profil yang
+    // sudah di-swipe / diblok dibuang di sini, bukan di server.
+    List<ProfileModel> candidates;
+
+    try {
+      final nearby = await const ProfileService().getNearbyProfiles(
+        limit: 200,
+      );
+
+      final excluded = excludedIds.toSet();
+
+      candidates = nearby
+          .where((p) => p.id != myId && !excluded.contains(p.id))
+          .toList();
+    } catch (e) {
+      // RPC belum ada / error: pakai query tabel + filter di client.
+      debugPrint('nearby_profiles gagal, pakai fallback: $e');
+
+      var query = _supabaseClient.from('profiles').select().neq('id', myId);
+
+      if (excludedIds.isNotEmpty) {
+        query = query.not('id', 'in', excludedIds);
+      }
+
+      final result = await query.limit(100);
+      final me = ProfileController.to.me;
+
+      candidates = (result as List)
+          .map((item) => ProfileModel.fromMap(item))
+          .where((p) => _passesMyPreferences(p, me))
+          .toList();
+    }
+
+    // Hanya tampilkan profil yang punya minimal satu foto.
+    if (requirePhoto) {
+      candidates = candidates.where(_hasPhoto).toList();
+    }
+
+    // Diacak agar Daily Brew bervariasi.
+    candidates.shuffle();
+
+    if (!mounted) return;
+
+    final brew = candidates.take(dailyLimit).toList();
+
+    // Suggested diambil dari sisa kandidat, jadi tidak sama dengan Brew.
+    final rest = candidates.skip(dailyLimit).take(suggestedLimit).toList();
+
+    setState(() {
+      dailyBrew = brew;
+
+      // Hanya kalau kandidat tidak cukup, pakai ulang profil Brew
+      // supaya tab Suggested tidak kosong.
+      suggested = rest.isNotEmpty ? rest : List.of(brew);
+
+      isLoading = false;
+    });
   }
 
   /// Dipanggil setelah exit animation kartu selesai.
@@ -298,21 +334,18 @@ class _HomeScreenState extends State<HomeScreen> {
       if (result.isMatch) {
         await showMatchDialog(profile);
       } else if (action == SwipeAction.like) {
-        Get.snackbar(
+        _showSnack(
           'Like terkirim',
           'Kamu menyukai ${profile.name}',
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 16,
-          backgroundColor: Colors.white,
-          colorText: AppColors.textPrimary,
           duration: const Duration(seconds: 2),
         );
       }
 
-      // Jika daftar di tab yang sedang dibuka sudah habis,
-      // refresh kembali data yang tersedia.
-      if (mounted && _activeList.isEmpty) {
+      // Brew yang habis memang habis sampai besok (batas harian dijaga
+      // server). Hanya tab Suggested yang diisi ulang otomatis.
+      if (mounted &&
+          widget.mode == HomeViewMode.single &&
+          suggested.isEmpty) {
         await fetchDailyBrew(showLoader: false);
       }
 
@@ -356,15 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       return false;
     } catch (e) {
-      Get.snackbar(
-        'Gagal',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 16,
-        backgroundColor: Colors.white,
-        colorText: AppColors.textPrimary,
-      );
+      _showSnack('Gagal', e.toString());
 
       return false;
     } finally {
@@ -374,6 +399,103 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  /// `true` saat proses rewind berjalan (mencegah tap ganda).
+  bool _isRewinding = false;
+
+  /// Batalkan swipe terakhir. Hanya untuk Premium/VIP; user Free
+  /// diarahkan ke halaman paket. Server tetap memeriksa ulang tier.
+  Future<void> _rewindLastSwipe() async {
+    if (_isRewinding) return;
+
+    setState(() {
+      _isRewinding = true;
+    });
+
+    try {
+      final status = await TierService.getStatus();
+      if (!status.canRewind) {
+        throw const RewindException('upgrade_required');
+      }
+
+      final result = await _swipeService.rewind();
+      final profile =
+          await const ProfileService().getProfileById(result.targetId);
+
+      if (!mounted) return;
+
+      if (profile != null) {
+        setState(() {
+          // Hindari duplikat, lalu taruh paling atas di tab yang aktif.
+          _removeFromAll(profile);
+          if (widget.mode == HomeViewMode.single) {
+            suggested.insert(0, profile);
+          } else {
+            dailyBrew.insert(0, profile);
+          }
+        });
+      }
+
+      _showSnack(
+        'Swipe dibatalkan',
+        profile != null
+            ? '${profile.name} kembali ke daftarmu.'
+            : 'Swipe terakhirmu sudah dibatalkan.',
+        duration: const Duration(seconds: 2),
+      );
+    } on RewindException catch (e) {
+      if (!mounted) return;
+
+      if (e.code == 'upgrade_required') {
+        _showRewindUpgradeDialog();
+      } else {
+        _showSnack('Rewind', e.message);
+      }
+    } catch (e) {
+      debugPrint('Rewind gagal: $e');
+      _showSnack('Rewind gagal', 'Coba lagi beberapa saat.');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRewinding = false;
+        });
+      }
+    }
+  }
+
+  void _showRewindUpgradeDialog() {
+    Get.defaultDialog(
+      title: 'Fitur Premium',
+      titleStyle: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+      ),
+      middleText:
+          'Salah geser? Rewind membatalkan swipe terakhirmu.\n\nTersedia untuk Premium dan VIP.',
+      middleTextStyle: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 14,
+        height: 1.45,
+      ),
+      backgroundColor: Colors.white,
+      radius: 20,
+      textConfirm: 'Lihat Paket',
+      textCancel: 'Nanti',
+      confirmTextColor: Colors.white,
+      buttonColor: AppColors.matchaDeep,
+      cancelTextColor: AppColors.textSecondary,
+      onConfirm: () {
+        Get.back();
+
+        Get.to(
+          () => const SubscriptionScreen(),
+          transition: Transition.cupertino,
+          duration: const Duration(milliseconds: 320),
+        );
+      },
+    );
   }
 
   /// lonceng di home
@@ -398,6 +520,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? 'Suggested'
                       : 'Daily Brew',
                   onNotificationTap: _openNotifications,
+                  onRewindTap: _rewindLastSwipe,
+                  isRewinding: _isRewinding,
                 ),
                 Expanded(
                   child: AnimatedSwitcher(
@@ -426,6 +550,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : _activeList.isEmpty
                         ? _EmptyState(
                             key: const ValueKey('empty'),
+                            isSuggested: widget.mode == HomeViewMode.single,
                             onRefresh: () => fetchDailyBrew(showLoader: true),
                           )
                         : widget.mode == HomeViewMode.single
@@ -460,8 +585,15 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeHeader extends StatelessWidget {
   final String title;
   final VoidCallback onNotificationTap;
+  final VoidCallback onRewindTap;
+  final bool isRewinding;
 
-  const _HomeHeader({required this.title, required this.onNotificationTap});
+  const _HomeHeader({
+    required this.title,
+    required this.onNotificationTap,
+    required this.onRewindTap,
+    this.isRewinding = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -507,6 +639,13 @@ class _HomeHeader extends StatelessWidget {
               ],
             ),
           ),
+          // Rewind swipe terakhir (Premium/VIP)
+          _HeaderButton(
+            icon: Icons.replay_rounded,
+            tooltip: 'Rewind swipe terakhir',
+            onTap: isRewinding ? () {} : onRewindTap,
+          ),
+          const SizedBox(width: 8),
           // Tombol Akses Cepat Gift Shop & Inventory
           _HeaderButton(
             icon: Icons.store_rounded,
@@ -915,7 +1054,14 @@ class _LoadingState extends StatelessWidget {
 class _EmptyState extends StatelessWidget {
   final Future<void> Function() onRefresh;
 
-  const _EmptyState({super.key, required this.onRefresh});
+  /// `true` = teks untuk tab Suggested, `false` = teks untuk Daily Brew.
+  final bool isSuggested;
+
+  const _EmptyState({
+    super.key,
+    required this.onRefresh,
+    this.isSuggested = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -946,10 +1092,12 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          const Text(
-            'Brew-mu habis untuk hari ini',
+          Text(
+            isSuggested
+                ? 'Belum ada saran baru'
+                : 'Brew-mu habis untuk hari ini',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 22,
               height: 1.15,
@@ -958,10 +1106,12 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 9),
-          const Text(
-            'Belum ada profil baru yang cocok dengan filter preferensimu. Coba longgarkan filter usia atau jarak di tab Profile, atau kembali lagi nanti.',
+          Text(
+            isSuggested
+                ? 'Semua profil yang cocok dengan filtermu sudah kamu lihat. Coba longgarkan filter usia atau jarak di tab Profile untuk melihat lebih banyak orang.'
+                : 'Kamu sudah melihat semua pilihan hari ini. Daily Brew baru akan siap besok. Sambil menunggu, cek tab Suggested.',
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: AppColors.textSecondary,
               fontSize: 14,
               height: 1.5,
