@@ -36,6 +36,9 @@ class RewindResult {
   final String targetId;
   final String action;
   const RewindResult({required this.targetId, required this.action});
+
+  /// `true` kalau swipe yang dibatalkan adalah like.
+  bool get wasLike => action == SwipeAction.like.dbValue;
 }
 
 class RewindException implements Exception {
@@ -43,12 +46,17 @@ class RewindException implements Exception {
   final String code;
   const RewindException(this.code);
 
+  /// Batas waktu rewind. Samakan dengan `interval`
+  /// `rewind_last_swipe` di Supabase.
+  static const int windowMinutes = 5;
+
   String get message {
     switch (code) {
       case 'upgrade_required':
         return 'Rewind hanya tersedia untuk Premium dan VIP.';
       case 'nothing_to_rewind':
-        return 'Belum ada swipe yang bisa dibatalkan.';
+        return 'Tidak ada swipe dalam $windowMinutes menit terakhir '
+            'yang bisa dibatalkan.';
       case 'already_matched':
         return 'Swipe ini sudah jadi match, tidak bisa dibatalkan.';
       default:
@@ -65,7 +73,7 @@ class SwipeService {
 
   SupabaseClient get _client => Supabase.instance.client;
 
-  /// Versi lama (dipakai LikesScreen): mengembalikan `true` kalau MATCH.
+  /// dipakai LikesScreen: mengembalikan `true` kalau MATCH.
   Future<bool> submit({
     required String targetId,
     required SwipeAction action,
@@ -122,16 +130,40 @@ class SwipeService {
     );
   }
 
-  /// Batalkan swipe terakhir (Premium/VIP).
+  /// Batalkan swipe terakhir (Premium/VIP) lewat RPC `rewind_last_swipe`.
+  /// Tier, batas waktu, dan status match dicek di server.
   Future<RewindResult> rewind() async {
-    final raw = await _client.rpc('rewind_last_swipe');
-    final map = Map<String, dynamic>.from(raw as Map);
+    if (_client.auth.currentUser == null) {
+      throw StateError('Sesi berakhir. Silakan login ulang.');
+    }
+
+    final dynamic raw;
+    try {
+      raw = await _client.rpc('rewind_last_swipe');
+    } on PostgrestException catch (e) {
+      debugPrint(
+        'Gagal rewind: [${e.code}] ${e.message} | ${e.details}',
+      );
+      rethrow;
+    }
+
+    if (raw is! Map) {
+      throw const RewindException('unknown');
+    }
+
+    final map = Map<String, dynamic>.from(raw);
 
     if (map['ok'] != true) {
       throw RewindException(map['error']?.toString() ?? 'unknown');
     }
+
+    final targetId = map['target_id']?.toString();
+    if (targetId == null || targetId.isEmpty) {
+      throw const RewindException('unknown');
+    }
+
     return RewindResult(
-      targetId: map['target_id'].toString(),
+      targetId: targetId,
       action: map['action']?.toString() ?? '',
     );
   }
