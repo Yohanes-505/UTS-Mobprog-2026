@@ -4,19 +4,11 @@ import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/models/app_notification.dart';
 import 'package:Meetcha/models/notification_item.dart';
 import 'package:Meetcha/services/notification_history_service.dart';
-// `onNotificationTap` didefinisikan di notification_service.dart (bukan
-// main.dart) -- main.dart cuma nge-assign isinya. Pakai ulang yang sama
-// di sini biar tap notif dari riwayat & dari status bar HP konsisten.
 import 'package:Meetcha/services/notification_service.dart'
     show onNotificationTap;
 import 'package:Meetcha/utils/date_label.dart';
 import 'package:flutter/material.dart';
 
-/// Halaman "Notifikasi" biasa -- daftar riwayat match & pesan yang pernah
-/// masuk, bukan langsung lompat ke Match & Chat kayak tombol lonceng
-/// sebelumnya. Tap satu item nge-trigger alur navigasi yang SAMA kayak
-/// pas notif di-tap dari status bar HP (lewat `onNotificationTap` yang
-/// sama), jadi gak ada logika navigasi yang dobel.
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -47,8 +39,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _openItem(NotificationItem item) async {
     if (!item.isRead) {
-      // Optimis: update tampilan dulu baru simpan ke server, biar
-      // kerasa instan pas di-tap.
       setState(() {
         final index = _items.indexWhere((i) => i.id == item.id);
         if (index != -1) {
@@ -65,10 +55,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
       unawaited(_service.markAsRead(item.id));
     }
-
-    // Pakai ulang alur navigasi yang sama kayak pas notif di-tap dari
-    // status bar (main.dart), biar konsisten: match -> Match & Chat,
-    // message -> ChatScreen lawan bicaranya.
     onNotificationTap?.call(item.toAppNotification());
   }
 
@@ -90,6 +76,60 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     await _service.markAllAsRead();
   }
 
+  /// hapus 1 notifikasi
+  Future<void> _deleteItem(NotificationItem item) async {
+    final index = _items.indexOf(item);
+    setState(() => _items.remove(item));
+
+    final success = await _service.deleteNotification(item.id);
+    if (!success && mounted) {
+      setState(() {
+        final insertAt = index.clamp(0, _items.length);
+        _items.insert(insertAt, item);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal hapus notifikasi, coba lagi')),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteAll() async {
+    if (_items.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus semua notifikasi?'),
+        content: const Text(
+          'Semua riwayat notifikasi kamu bakal dihapus dan gak bisa dibalikin lagi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final old = List<NotificationItem>.of(_items);
+    setState(() => _items = []);
+
+    final success = await _service.deleteAll();
+    if (!success && mounted) {
+      setState(() => _items = old);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal hapus semua notifikasi, coba lagi')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasUnread = _items.any((i) => !i.isRead);
@@ -104,7 +144,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           if (hasUnread)
             TextButton(
               onPressed: _markAllRead,
-              child: const Text('Tandai semua dibaca'),
+              child: const Text('Tandai dibaca'),
+            ),
+          if (_items.isNotEmpty)
+            IconButton(
+              tooltip: 'Hapus semua',
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: _confirmDeleteAll,
             ),
         ],
       ),
@@ -135,9 +181,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           const Divider(height: 1, color: AppColors.borderSoft),
                       itemBuilder: (context, index) {
                         final item = _items[index];
-                        return _NotificationTile(
-                          item: item,
-                          onTap: () => _openItem(item),
+                        return Dismissible(
+                          key: ValueKey(item.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            color: AppColors.error,
+                            child: const Icon(Icons.delete_outline,
+                                color: Colors.white),
+                          ),
+                          onDismissed: (_) => _deleteItem(item),
+                          child: _NotificationTile(
+                            item: item,
+                            onTap: () => _openItem(item),
+                          ),
                         );
                       },
                     ),
