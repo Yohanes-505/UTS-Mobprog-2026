@@ -2,6 +2,7 @@ import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/models/profile_model.dart';
 import 'package:Meetcha/models/report_model.dart';
 import 'package:Meetcha/widgets/block_confirm_dialog.dart';
+import 'package:Meetcha/widgets/interest_chip.dart';
 import 'package:Meetcha/widgets/report_bottom_sheet.dart';
 import 'package:Meetcha/widgets/verified_badge.dart';
 import 'package:flutter/cupertino.dart';
@@ -335,13 +336,34 @@ class _ProfileCardWidgetState extends State<ProfileCardWidget> {
 
           if (profile.interests.isNotEmpty) ...[
             const SizedBox(height: 13),
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: profile.interests
-                  .take(4)
-                  .map((interest) => _InterestChip(label: interest))
-                  .toList(),
+            Builder(
+              builder: (context) {
+                final match = InterestMatch.forProfile(profile.interests);
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (match.sharedCount > 0) ...[
+                      SharedInterestsLabel(count: match.sharedCount),
+                      const SizedBox(height: 8),
+                    ],
+                    Wrap(
+                      spacing: 7,
+                      runSpacing: 7,
+                      children: match.ordered
+                          .take(4)
+                          .map(
+                            (interest) => InterestChip(
+                              label: interest,
+                              highlighted: match.isShared(interest),
+                              compact: true,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                );
+              },
             ),
           ],
 
@@ -503,35 +525,6 @@ class _ProfileCardWidgetState extends State<ProfileCardWidget> {
           Icons.person_rounded,
           size: 44,
           color: AppColors.matchaDeep,
-        ),
-      ),
-    );
-  }
-}
-
-class _InterestChip extends StatelessWidget {
-  final String label;
-
-  const _InterestChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.matchaSoft.withValues(alpha: 0.52),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: AppColors.primaryBorder.withValues(alpha: 0.65),
-        ),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: AppColors.matchaDeep,
-          fontSize: 11.5,
-          height: 1,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
