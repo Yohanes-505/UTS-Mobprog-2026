@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/subscription_service.dart';
 import 'subscription_screen.dart';
+import 'liked_profiles_screen.dart';
 
 class LikesScreen extends StatefulWidget {
   /// `true` kalau dibuka lewat push (ada tombol back).
@@ -34,7 +35,7 @@ class _LikesScreenState extends State<LikesScreen> {
   @override
   void initState() {
     super.initState();
-    _load(showSpinner: false); 
+    _load(showSpinner: false);
   }
 
   Future<void> _load({bool showSpinner = true}) async {
@@ -91,6 +92,13 @@ class _LikesScreenState extends State<LikesScreen> {
             ? IconButton(onPressed: () => Get.back(), icon: const Icon(Icons.arrow_back))
             : null,
         title: const Text('Menyukaimu', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
+        actions: [
+          IconButton(
+            tooltip: 'Yang kamu sukai',
+            icon: const Icon(Icons.favorite_border),
+            onPressed: () => Get.to(() => const LikedProfilesScreen()),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryDeep))
