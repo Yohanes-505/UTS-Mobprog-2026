@@ -33,6 +33,10 @@ class _MatchRef {
 class MatchChatService {
   const MatchChatService();
 
+  static const String _imageBucket = 'avatars';
+
+  static final ValueNotifier<int> unreadTotal = ValueNotifier<int>(0);
+
   /// (tab Match dibuka, atau ada match baru dari Home/Likes).
   /// Layar Match mendengarkan ini lalu memuat ulang datanya.
   static final ValueNotifier<int> matchesChanged = ValueNotifier<int>(0);
@@ -61,14 +65,23 @@ class MatchChatService {
     final refs = _groupByCounterpart(await _fetchMatchRows(myId), myId);
     final hidden = await BlockService.getHiddenUserIds(myId);
     refs.removeWhere((id, _) => hidden.contains(id));
-    if (refs.isEmpty) return [];
+    if (refs.isEmpty) {
+      unreadTotal.value = 0;
+      return [];
+    }
 
     final profiles = await _fetchProfiles(refs.keys);
+
+    final unreadFuture = _fetchUnreadCounts(
+      refs.values.expand((ref) => ref.ids).toList(),
+      myId,
+    );
 
     final previews = await Future.wait(
       refs.entries.where((e) => profiles.containsKey(e.key)).map((e) async {
         final res = await _getLastMessage(e.value.ids);
         final last = res.message;
+        final counts = await unreadFuture;
         return MatchPreview(
           profile: profiles[e.key]!,
           matchedAt: e.value.matchedAt,
@@ -77,15 +90,25 @@ class MatchChatService {
           lastMessageAt: last?.createdAt,
           lastMessageIsMine: last?.senderId == myId,
           activityKnown: res.ok,
+          unreadCount: e.value.ids.fold<int>(
+            0,
+            (sum, id) => sum + (counts?[id] ?? 0),
+          ),
         );
       }),
     );
 
+    final unread = await unreadFuture;
+
     final list = previews.toList();
-    
+
     if (list.any((p) => p.isExpired)) {
       list.removeWhere((p) => p.isExpired);
       unawaited(purgeExpiredMatches());
+    }
+
+    if (unread != null) {
+      unreadTotal.value = list.fold<int>(0, (sum, p) => sum + p.unreadCount);
     }
 
     list.sort((a, b) {
@@ -166,6 +189,33 @@ class MatchChatService {
     } catch (e) {
       debugPrint('Gagal memuat pesan terakhir: $e');
       return (message: null, ok: false);
+    }
+  }
+
+  Future<Map<String, int>?> _fetchUnreadCounts(
+    List<String> matchIds,
+    String myId,
+  ) async {
+    if (matchIds.isEmpty) return {};
+    try {
+      final rows = await withRetry(
+        () async => await _client
+            .from('messages')
+            .select('match_id')
+            .inFilter('match_id', matchIds)
+            .neq('sender_id', myId)
+            .or('is_read.eq.false,is_read.is.null'),
+        attempts: 2,
+      );
+      final counts = <String, int>{};
+      for (final row in rows) {
+        final id = row['match_id'].toString();
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+      return counts;
+    } catch (e) {
+      debugPrint('Gagal memuat jumlah pesan belum dibaca: $e');
+      return null;
     }
   }
 
@@ -287,6 +337,52 @@ class MatchChatService {
   }) async {
     final room = await openRoom(otherId);
     await sendMessage(room: room, text: ChatMessage.giftText(giftName));
+  }
+
+  Future<String> uploadChatImage({
+    required Uint8List bytes,
+    required String extension,
+  }) async {
+    final myId = currentUserId;
+    if (myId == null) {
+      throw StateError('Sesi berakhir. Silakan login ulang.');
+    }
+
+    final ext = _normalizeImageExtension(extension);
+    final path = '$myId/chat/${DateTime.now().microsecondsSinceEpoch}.$ext';
+
+    await _client.storage
+        .from(_imageBucket)
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            upsert: false,
+            contentType: _imageContentType(ext),
+          ),
+        )
+        .timeout(const Duration(seconds: 60));
+
+    return _client.storage.from(_imageBucket).getPublicUrl(path);
+  }
+
+  static String _normalizeImageExtension(String extension) {
+    final ext = extension.toLowerCase();
+    const allowed = {'jpg', 'jpeg', 'png', 'webp', 'gif'};
+    return allowed.contains(ext) ? ext : 'jpg';
+  }
+
+  static String _imageContentType(String ext) {
+    switch (ext) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
+    }
   }
 
   Future<void> markMessagesRead(ChatRoom room) async {

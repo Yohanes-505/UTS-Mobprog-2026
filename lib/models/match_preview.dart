@@ -10,6 +10,7 @@ class MatchPreview {
   final bool lastMessageIsMine;
   final List<String> matchIds;
   final bool activityKnown;
+  final int unreadCount;
 
   const MatchPreview({
     required this.profile,
@@ -19,6 +20,7 @@ class MatchPreview {
     this.lastMessageIsMine = false,
     this.matchIds = const [],
     this.activityKnown = true,
+    this.unreadCount = 0,
   });
 
   bool get hasMessages => lastMessage != null;
