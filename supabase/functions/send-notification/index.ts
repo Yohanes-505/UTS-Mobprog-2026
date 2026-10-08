@@ -79,6 +79,50 @@ async function sendToUser(
     console.error("Gagal ambil device_tokens:", error);
     return;
   }
+
+  // kalau salah satu device user lagi buka chat ini, anggap
+  // notifnya udah dibaca pas langsung dicatat ke riwayat
+  const wasViewingChat = extra.type === "message" &&
+    (tokens ?? []).some(
+      (t) => t.active_match_id === String(extra.related_id),
+    );
+
+  // catat/update riwayat notifikasi 
+  const relatedIdStr = String(extra.related_id ?? "");
+  const { data: existingHistory } = await supabase
+    .from("notifications")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("type", extra.type)
+    .eq("related_id", relatedIdStr)
+    .eq("is_read", false)
+    .maybeSingle();
+
+  const historyPayload = {
+    user_id: userId,
+    type: extra.type,
+    title,
+    body,
+    related_id: relatedIdStr,
+    is_read: wasViewingChat,
+  };
+
+  const { error: historyError } = existingHistory
+    ? await supabase
+      .from("notifications")
+      .update({
+        title,
+        body,
+        is_read: wasViewingChat,
+        created_at: new Date().toISOString(),
+      })
+      .eq("id", existingHistory.id)
+    : await supabase.from("notifications").insert(historyPayload);
+
+  if (historyError) {
+    console.error("Gagal simpan riwayat notifikasi:", historyError);
+  }
+
   if (!tokens || tokens.length === 0) {
     console.log(`User ${userId} belum punya device token`);
     return;
