@@ -743,6 +743,8 @@ class _ConversationItem
     final preview =
         '${item.lastMessageIsMine ? 'Kamu: ' : ''}${item.lastMessage ?? ''}';
 
+    final hasUnread = item.unreadCount > 0;
+
     return Padding(
       padding:
           const EdgeInsets.fromLTRB(
@@ -843,13 +845,19 @@ class _ConversationItem
                               at,
                             ),
                             style:
-                                const TextStyle(
-                              color: AppColors
-                                  .textSecondary,
+                                TextStyle(
+                              color: hasUnread
+                                  ? AppColors
+                                      .matchaDeep
+                                  : AppColors
+                                      .textSecondary,
                               fontSize: 10,
                               fontWeight:
-                                  FontWeight
-                                      .w500,
+                                  hasUnread
+                                      ? FontWeight
+                                          .w700
+                                      : FontWeight
+                                          .w500,
                             ),
                           ),
                       ],
@@ -870,15 +878,21 @@ class _ConversationItem
                                     .ellipsis,
                             style:
                                 TextStyle(
-                              color: AppColors
-                                  .textSecondary,
+                              color: hasUnread
+                                  ? AppColors
+                                      .textPrimary
+                                  : AppColors
+                                      .textSecondary,
                               fontSize: 12,
                               fontWeight:
-                                  item.lastMessageIsMine
+                                  hasUnread
                                       ? FontWeight
-                                          .w500
-                                      : FontWeight
-                                          .w600,
+                                          .w700
+                                      : item.lastMessageIsMine
+                                          ? FontWeight
+                                              .w500
+                                          : FontWeight
+                                              .w600,
                             ),
                           ),
                         ),
@@ -886,6 +900,16 @@ class _ConversationItem
                         const SizedBox(
                           width: 6,
                         ),
+
+                        if (hasUnread) ...[
+                          _UnreadBadge(
+                            count: item
+                                .unreadCount,
+                          ),
+                          const SizedBox(
+                            width: 4,
+                          ),
+                        ],
 
                         const Icon(
                           Icons
@@ -901,6 +925,48 @@ class _ConversationItem
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadBadge
+    extends StatelessWidget {
+  final int count;
+
+  const _UnreadBadge({
+    required this.count,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints:
+          const BoxConstraints(
+        minWidth: 20,
+        minHeight: 20,
+      ),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 6,
+      ),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.matchaDeep,
+        borderRadius:
+            BorderRadius.circular(
+          999,
+        ),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10.5,
+          height: 1,
+          fontWeight:
+              FontWeight.w800,
         ),
       ),
     );
