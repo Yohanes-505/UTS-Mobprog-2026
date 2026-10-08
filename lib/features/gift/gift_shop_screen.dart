@@ -3,19 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/app_colors.dart';
 import '../../services/gift_service.dart';
-import '../../services/match_chat_service.dart';
 
 class GiftShopScreen extends StatefulWidget {
-<<<<<<< HEAD
-  final String? receiverId;
-  final String? receiverName;
-
-  const GiftShopScreen({super.key, this.receiverId, this.receiverName});
-
-  bool get _isSendingToOthers => receiverId != null;
-=======
   const GiftShopScreen({Key? key}) : super(key: key);
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
 
   @override
   State<GiftShopScreen> createState() => _GiftShopScreenState();
@@ -75,52 +65,16 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
       return;
     }
 
-<<<<<<< HEAD
-    // Penerima: match yang dipilih, atau diri sendiri kalau dibuka dari menu biasa
-    final receiverId = widget.receiverId ?? user.id;
-
-    final result = await _giftService.sendGiftToUser(giftId, receiverId);
-
-    // User mungkin sudah keluar dari halaman selama proses async
-    if (!mounted) return;
-
-=======
     final userId = _supabase.auth.currentUser!.id;
     final result = await _giftService.sendGiftToUser(giftId, userId);
     
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result['message'])),
     );
 
     if (result['success'] == true) {
-<<<<<<< HEAD
-      // Kalau gift dikirim ke match, munculkan juga sebagai pesan di chat mereka
-      final receiverId = widget.receiverId;
-      if (receiverId != null) {
-        final gift = _gifts.cast<Map>().firstWhere(
-              (g) => g['id'].toString() == giftId,
-              orElse: () => const {},
-            );
-        final giftName = gift['name']?.toString() ?? 'Gift';
-
-        try {
-          await const MatchChatService().sendGiftMessage(
-            otherId: receiverId,
-            giftName: giftName,
-          );
-        } catch (e) {
-          // Gift sudah terkirim; kegagalan pesan chat tidak membatalkannya.
-          debugPrint('Gagal mengirim pesan gift ke chat: $e');
-        }
-      }
-
-      // Refresh saldo dan katalog setelah pembelian berhasil
-      await _fetchData();
-=======
       // refresh saldo dan UI setelah beli
       _fetchData(); 
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
     }
   }
 
@@ -129,12 +83,6 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-<<<<<<< HEAD
-        title: Text(
-          widget._isSendingToOthers
-              ? 'Kirim Gift ke ${widget.receiverName ?? 'Match'}'
-              : 'Gift Shop',
-=======
         centerTitle: false,
         title: const Text(
           'Gift Shop',
@@ -144,7 +92,6 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
             fontWeight: FontWeight.w800,
             letterSpacing: -0.45,
           ),
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
         ),
         actions: [
           Center(
@@ -247,20 +194,10 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () =>
-<<<<<<< HEAD
-                              _buyGift(gift['id'].toString(), gift['price']),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.pink,
-                          ),
-                          child: Text(
-                            widget._isSendingToOthers ? 'Kirim' : 'Beli',
-                            style: const TextStyle(color: Colors.white),
-=======
                               _buyGift(gift['id'], gift['price']),
                           child: const Text(
                             'Beli',
                             style: TextStyle(fontWeight: FontWeight.w700),
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
                           ),
                         ),
                       ),
@@ -271,8 +208,6 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
             ),
     );
   }
-<<<<<<< HEAD
-=======
 
   Widget _buildLoading() {
     return const Center(
@@ -299,5 +234,4 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
       ),
     );
   }
->>>>>>> 53f0b52a579f91635bad06d697da23d55d6dcf64
 }
