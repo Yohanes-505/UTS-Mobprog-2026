@@ -20,6 +20,7 @@ class NotificationHistoryService {
           .from(_table)
           .select()
           .eq('user_id', userId)
+          .neq('type', 'message')
           .order('created_at', ascending: false)
           .limit(limit);
 
@@ -42,6 +43,7 @@ class NotificationHistoryService {
           .from(_table)
           .select('id')
           .eq('user_id', userId)
+          .neq('type', 'message')
           .eq('is_read', false);
       return (rows as List).length;
     } catch (e) {
