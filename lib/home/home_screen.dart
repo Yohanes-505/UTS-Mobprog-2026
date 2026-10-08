@@ -1,9 +1,7 @@
-import 'dart:math' as math;
-
 import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/controllers/profile_controller.dart';
 import 'package:Meetcha/models/profile_model.dart';
-import 'package:Meetcha/screens/notifications_screen.dart';
+import 'package:Meetcha/screens/match_screen.dart';
 import 'package:Meetcha/screens/subscription_screen.dart';
 import 'package:Meetcha/services/block_service.dart';
 import 'package:Meetcha/services/profile_service.dart';
@@ -34,7 +32,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Daftar untuk tab Brew (maks. [brewBatchSize] profil).
+  /// Daftar untuk tab Brew (maks. [dailyLimit] profil).
   List<ProfileModel> dailyBrew = [];
 
   /// Daftar untuk tab Suggested. Sebisa mungkin berisi orang yang
@@ -42,23 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ProfileModel> suggested = [];
 
   bool isLoading = true;
-  final int brewBatchSize = 5;
-  final int suggestedBatchSize = 10;
-  final int dailyBrewQuota = 15;
+  final int dailyLimit = 5;
+  final int suggestedLimit = 10;
 
-  int _usedQuota = 0;
+  /// `true` = profil tanpa foto tidak ditampilkan (aturan umum aplikasi
+  /// kencan). Set `false` kalau data uji coba belum punya foto.
+  final bool requirePhoto = true;
 
-  bool get _quotaExhausted => _usedQuota >= dailyBrewQuota;
-
-  int get _remainingQuota => math.max(0, dailyBrewQuota - _usedQuota);
-
-  bool _hasBatch = false;
-
-  _EmptyReason get _emptyReason {
-    if (_quotaExhausted) return _EmptyReason.quotaExhausted;
-    if (_hasBatch) return _EmptyReason.batchFinished;
-    return _EmptyReason.noCandidates;
-  }
+  bool _hasPhoto(ProfileModel p) =>
+      p.photoUrls.any((url) => url.trim().startsWith('http'));
 
   /// Daftar yang sedang ditampilkan sesuai tab aktif.
   List<ProfileModel> get _activeList =>
@@ -92,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // menganimasikan pergantian ke profil berikutnya.
       key: ValueKey('single-${profile.id}'),
       profile: profile,
-      remaining: _remainingQuota,
+      remaining: suggested.length,
       actionsEnabled: !_busyIds.contains(profile.id),
       onSwipe: (action) => handleSwipe(profile, action),
       onBlocked: () => _removeProfile(profile),
@@ -165,54 +155,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return true;
   }
 
-  Future<int> _countUsedQuotaToday(String myId) async {
-    try {
-      final now = DateTime.now();
-      final startOfDay = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).toUtc().toIso8601String();
-
-      final rows = await _supabaseClient
-          .from('swipes')
-          .select('swiped_id')
-          .eq('swiper_id', myId)
-          .gte('created_at', startOfDay);
-
-      return (rows as List).length;
-    } catch (e) {
-      debugPrint('Gagal menghitung swipe hari ini: $e');
-      return _usedQuota;
-    }
-  }
-
-  void _showQuotaExhaustedDialog() {
-    Get.defaultDialog(
-      title: 'Daily Brew Habis',
-      titleStyle: const TextStyle(
-        color: AppColors.textPrimary,
-        fontSize: 20,
-        fontWeight: FontWeight.w800,
-      ),
-      middleText:
-          'Daily Brew hari ini sudah habis.\n\n'
-          'Kamu sudah memakai $dailyBrewQuota like/skip hari ini. '
-          'Kembali lagi besok untuk Daily Brew baru!',
-      middleTextStyle: const TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 14,
-        height: 1.45,
-      ),
-      backgroundColor: Colors.white,
-      radius: 20,
-      textConfirm: 'Oke',
-      confirmTextColor: Colors.white,
-      buttonColor: AppColors.matchaDeep,
-      onConfirm: () => Get.back(),
-    );
-  }
-
   Future<void> fetchDailyBrew({bool showLoader = true}) async {
     if (showLoader && mounted) {
       setState(() {
@@ -225,18 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (myId == null) {
         throw StateError('Sesi berakhir. Silakan login ulang.');
-      }
-
-      _usedQuota = await _countUsedQuotaToday(myId);
-
-      if (_quotaExhausted) {
-        if (!mounted) return;
-        setState(() {
-          dailyBrew = [];
-          suggested = [];
-          isLoading = false;
-        });
-        return;
       }
 
       final swiped = await _supabaseClient
@@ -287,20 +217,20 @@ class _HomeScreenState extends State<HomeScreen> {
             .toList();
       }
 
+      // Hanya tampilkan profil yang punya minimal satu foto.
+      if (requirePhoto) {
+        candidates = candidates.where(_hasPhoto).toList();
+      }
+
       // Diacak agar Daily Brew bervariasi.
       candidates.shuffle();
 
       if (!mounted) return;
 
-      final remaining = _remainingQuota;
-
-      final brew = candidates.take(math.min(brewBatchSize, remaining)).toList();
+      final brew = candidates.take(dailyLimit).toList();
 
       // Suggested diambil dari sisa kandidat, jadi tidak sama dengan Brew.
-      final rest = candidates
-          .skip(brew.length)
-          .take(math.min(suggestedBatchSize, remaining))
-          .toList();
+      final rest = candidates.skip(dailyLimit).take(suggestedLimit).toList();
 
       setState(() {
         dailyBrew = brew;
@@ -308,8 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
         // Hanya kalau kandidat tidak cukup, pakai ulang profil Brew
         // supaya tab Suggested tidak kosong.
         suggested = rest.isNotEmpty ? rest : List.of(brew);
-
-        _hasBatch = dailyBrew.isNotEmpty || suggested.isNotEmpty;
 
         isLoading = false;
       });
@@ -347,11 +275,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return false;
     }
 
-    if (_quotaExhausted) {
-      _showQuotaExhaustedDialog();
-      return false;
-    }
-
     setState(() {
       _busyIds.add(profile.id);
     });
@@ -369,18 +292,12 @@ class _HomeScreenState extends State<HomeScreen> {
       // Swipe berhasil disimpan.
       // Profil baru dihapus setelah exit animation selesai.
       setState(() {
-        _usedQuota++;
         _removeFromAll(profile);
-
-        if (_quotaExhausted) {
-          dailyBrew.clear();
-          suggested.clear();
-        }
       });
 
       if (result.isMatch) {
         await showMatchDialog(profile);
-      } else if (action == SwipeAction.like && !_quotaExhausted) {
+      } else if (action == SwipeAction.like) {
         Get.snackbar(
           'Like terkirim',
           'Kamu menyukai ${profile.name}',
@@ -393,9 +310,10 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
 
-      if (_quotaExhausted) {
-        if (mounted) _showQuotaExhaustedDialog();
-        return true;
+      // Jika daftar di tab yang sedang dibuka sudah habis,
+      // refresh kembali data yang tersedia.
+      if (mounted && _activeList.isEmpty) {
+        await fetchDailyBrew(showLoader: false);
       }
 
       return true;
@@ -458,12 +376,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// Lonceng di Home sekarang buka halaman Notifikasi biasa (riwayat
-  /// match & pesan), BUKAN langsung lompat ke Match & Chat kayak
-  /// sebelumnya -- biar user bisa lihat histori notifnya dulu.
-  void _openNotifications() {
+  void _openMatches() {
     Navigator.of(context)
-        .push(CupertinoPageRoute(builder: (_) => const NotificationsScreen()));
+        .push(CupertinoPageRoute(builder: (_) => const MatchChatScreen()));
   }
 
   @override
@@ -477,7 +392,12 @@ class _HomeScreenState extends State<HomeScreen> {
             constraints: const BoxConstraints(maxWidth: 520),
             child: Column(
               children: [
-                _HomeHeader(onNotificationTap: _openNotifications),
+                _HomeHeader(
+                  title: widget.mode == HomeViewMode.single
+                      ? 'Suggested'
+                      : 'Daily Brew',
+                  onNotificationTap: _openMatches,
+                ),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 280),
@@ -505,9 +425,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         : _activeList.isEmpty
                         ? _EmptyState(
                             key: const ValueKey('empty'),
-                            reason: _emptyReason,
-                            dailyBrewQuota: dailyBrewQuota,
-                            remainingQuota: _remainingQuota,
                             onRefresh: () => fetchDailyBrew(showLoader: true),
                           )
                         : widget.mode == HomeViewMode.single
@@ -515,7 +432,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         : _DailyBrewContent(
                             key: const ValueKey('content'),
                             profiles: dailyBrew,
-                            remainingQuota: _remainingQuota,
                             busyIds: _busyIds,
                             onRefresh: () => fetchDailyBrew(showLoader: false),
                             onSwipe: handleSwipe,
@@ -541,9 +457,10 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
+  final String title;
   final VoidCallback onNotificationTap;
 
-  const _HomeHeader({required this.onNotificationTap});
+  const _HomeHeader({required this.title, required this.onNotificationTap});
 
   @override
   Widget build(BuildContext context) {
@@ -562,11 +479,11 @@ class _HomeHeader extends StatelessWidget {
             child: Image.asset('images/logo_mark.png', fit: BoxFit.contain),
           ),
           const SizedBox(width: 11),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'MEETCHA',
                   style: TextStyle(
                     color: AppColors.brown,
@@ -575,10 +492,10 @@ class _HomeHeader extends StatelessWidget {
                     letterSpacing: 2.3,
                   ),
                 ),
-                SizedBox(height: 1),
+                const SizedBox(height: 1),
                 Text(
-                  'Daily Brew',
-                  style: TextStyle(
+                  title,
+                  style: const TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
                     height: 1.1,
@@ -596,7 +513,7 @@ class _HomeHeader extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => GiftShopScreen()),
+                MaterialPageRoute(builder: (context) => GiftShopScreen()), 
               );
             },
           ),
@@ -607,14 +524,14 @@ class _HomeHeader extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => UserInventoryScreen()),
+                MaterialPageRoute(builder: (context) => UserInventoryScreen()), 
               );
             },
           ),
           const SizedBox(width: 8),
           _HeaderButton(
             icon: Icons.notifications_none_rounded,
-            tooltip: 'Notifikasi',
+            tooltip: 'Match & Pesan',
             onTap: onNotificationTap,
           ),
         ],
@@ -693,8 +610,6 @@ class _HeaderButtonState extends State<_HeaderButton> {
 class _DailyBrewContent extends StatelessWidget {
   final List<ProfileModel> profiles;
 
-  final int remainingQuota;
-
   final Set<String> busyIds;
 
   final Future<void> Function() onRefresh;
@@ -706,7 +621,6 @@ class _DailyBrewContent extends StatelessWidget {
   const _DailyBrewContent({
     super.key,
     required this.profiles,
-    required this.remainingQuota,
     required this.busyIds,
     required this.onRefresh,
     required this.onSwipe,
@@ -762,7 +676,7 @@ class _DailyBrewContent extends StatelessWidget {
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 220),
                     child: Container(
-                      key: ValueKey(remainingQuota),
+                      key: ValueKey(profiles.length),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 7,
@@ -772,7 +686,7 @@ class _DailyBrewContent extends StatelessWidget {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        '$remainingQuota left',
+                        '${profiles.length} left',
                         style: const TextStyle(
                           color: AppColors.matchaDeep,
                           fontSize: 12,
@@ -997,54 +911,13 @@ class _LoadingState extends StatelessWidget {
   }
 }
 
-enum _EmptyReason { quotaExhausted, batchFinished, noCandidates }
-
 class _EmptyState extends StatelessWidget {
   final Future<void> Function() onRefresh;
-  final _EmptyReason reason;
-  final int dailyBrewQuota;
-  final int remainingQuota;
 
-  const _EmptyState({
-    super.key,
-    required this.onRefresh,
-    this.reason = _EmptyReason.noCandidates,
-    this.dailyBrewQuota = 15,
-    this.remainingQuota = 0,
-  });
-
-  String get _title {
-    switch (reason) {
-      case _EmptyReason.quotaExhausted:
-        return 'Daily Brew hari ini sudah habis';
-      case _EmptyReason.batchFinished:
-        return 'Brew batch ini sudah habis';
-      case _EmptyReason.noCandidates:
-        return 'Brew-mu habis untuk hari ini';
-    }
-  }
-
-  String get _message {
-    switch (reason) {
-      case _EmptyReason.quotaExhausted:
-        return 'Kamu sudah memakai $dailyBrewQuota like/skip hari ini. '
-            'Kembali lagi besok untuk Daily Brew baru!';
-      case _EmptyReason.batchFinished:
-        return 'Silakan refresh untuk memuat Brew berikutnya. '
-            'Kamu masih punya $remainingQuota jatah like/skip hari ini.';
-      case _EmptyReason.noCandidates:
-        return 'Belum ada profil baru yang cocok dengan filter preferensimu. '
-            'Coba longgarkan filter usia atau jarak di tab Profile, '
-            'atau kembali lagi nanti.';
-    }
-  }
+  const _EmptyState({super.key, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
-    final showRefresh = reason != _EmptyReason.quotaExhausted;
-    final refreshLabel =
-        reason == _EmptyReason.batchFinished ? 'Refresh Brew' : 'Muat ulang';
-
     return RefreshIndicator(
       color: AppColors.matchaDeep,
       backgroundColor: Colors.white,
@@ -1072,10 +945,10 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          Text(
-            _title,
+          const Text(
+            'Brew-mu habis untuk hari ini',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 22,
               height: 1.15,
@@ -1084,39 +957,38 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 9),
-          Text(
-            _message,
+          const Text(
+            'Belum ada profil baru yang cocok dengan filter preferensimu. Coba longgarkan filter usia atau jarak di tab Profile, atau kembali lagi nanti.',
             textAlign: TextAlign.center,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textSecondary,
               fontSize: 14,
               height: 1.5,
             ),
           ),
           const SizedBox(height: 24),
-          if (showRefresh)
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  onRefresh();
-                },
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.matchaDeep,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 11,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
+          Center(
+            child: TextButton.icon(
+              onPressed: () {
+                onRefresh();
+              },
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.matchaDeep,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 11,
                 ),
-                icon: const Icon(Icons.refresh_rounded, size: 19),
-                label: Text(
-                  refreshLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
                 ),
               ),
+              icon: const Icon(Icons.refresh_rounded, size: 19),
+              label: const Text(
+                'Muat ulang',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
+          ),
         ],
       ),
     );
