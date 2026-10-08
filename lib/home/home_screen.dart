@@ -55,7 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ProfileModel> suggested = [];
 
   bool isLoading = true;
-  final int dailyLimit = 5;
+  final int dailyLimit = 15;
   final int suggestedLimit = 10;
 
   /// `true` = profil tanpa foto tidak ditampilkan (aturan umum aplikasi
