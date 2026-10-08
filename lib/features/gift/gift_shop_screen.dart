@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/gift_service.dart';
+import '../../services/match_chat_service.dart';
 
 class GiftShopScreen extends StatefulWidget {
-  const GiftShopScreen({super.key});
+  final String? receiverId;
+  final String? receiverName;
+
+  const GiftShopScreen({super.key, this.receiverId, this.receiverName});
+
+  bool get _isSendingToOthers => receiverId != null;
 
   @override
   State<GiftShopScreen> createState() => _GiftShopScreenState();
@@ -91,7 +97,10 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
       return;
     }
 
-    final result = await _giftService.sendGiftToUser(giftId, user.id);
+    // Penerima: match yang dipilih, atau diri sendiri kalau dibuka dari menu biasa
+    final receiverId = widget.receiverId ?? user.id;
+
+    final result = await _giftService.sendGiftToUser(giftId, receiverId);
 
     // User mungkin sudah keluar dari halaman selama proses async
     if (!mounted) return;
@@ -102,8 +111,28 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
       ),
     );
 
-    // Refresh saldo dan katalog setelah pembelian berhasil
     if (result['success'] == true) {
+      // Kalau gift dikirim ke match, munculkan juga sebagai pesan di chat mereka
+      final receiverId = widget.receiverId;
+      if (receiverId != null) {
+        final gift = _gifts.cast<Map>().firstWhere(
+              (g) => g['id'].toString() == giftId,
+              orElse: () => const {},
+            );
+        final giftName = gift['name']?.toString() ?? 'Gift';
+
+        try {
+          await const MatchChatService().sendGiftMessage(
+            otherId: receiverId,
+            giftName: giftName,
+          );
+        } catch (e) {
+          // Gift sudah terkirim; kegagalan pesan chat tidak membatalkannya.
+          debugPrint('Gagal mengirim pesan gift ke chat: $e');
+        }
+      }
+
+      // Refresh saldo dan katalog setelah pembelian berhasil
       await _fetchData();
     }
   }
@@ -112,7 +141,11 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gift Shop'),
+        title: Text(
+          widget._isSendingToOthers
+              ? 'Kirim Gift ke ${widget.receiverName ?? 'Match'}'
+              : 'Gift Shop',
+        ),
         actions: [
           Center(
             child: Padding(
@@ -188,9 +221,9 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.pink,
                           ),
-                          child: const Text(
-                            'Beli',
-                            style: TextStyle(color: Colors.white),
+                          child: Text(
+                            widget._isSendingToOthers ? 'Kirim' : 'Beli',
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
                       ],

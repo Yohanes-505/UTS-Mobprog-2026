@@ -5,7 +5,7 @@ import 'package:Meetcha/profile/profile_setup_screen.dart';
 import 'package:Meetcha/services/profile_service.dart';
 import 'package:Meetcha/services/supabase_service.dart';
 import 'package:Meetcha/services/session_timeout_service.dart';
-import 'package:Meetcha/constants/app_colors.dart';
+import 'package:Meetcha/widgets/meetcha_loading.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -31,10 +31,7 @@ class AuthGate extends StatelessWidget {
       future: _resolve(),
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const MeetchaLoadingScreen();
         }
         final result = snapshot.data;
         if (result == null) return const WelcomeScreen();
