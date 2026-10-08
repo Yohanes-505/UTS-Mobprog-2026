@@ -1,5 +1,6 @@
 import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/controllers/profile_controller.dart';
+import 'package:Meetcha/features/wellbeing/wellbeing_guard.dart';
 import 'package:Meetcha/home/home_screen.dart';
 import 'package:Meetcha/profile/profile_tab_screen.dart';
 import 'package:Meetcha/home/single_profile_view.dart';
@@ -62,36 +63,40 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final tabs = _tabs;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: List.generate(tabs.length, (index) {
-          final isSelected = _pageFor(_index) == index;
+    // WellbeingGuard (SDG 3): menawarkan check-in mood sekali sehari dan
+    // menghitung waktu layar untuk pengingat istirahat.
+    return WellbeingGuard(
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: List.generate(tabs.length, (index) {
+            final isSelected = _pageFor(_index) == index;
 
-          return Positioned.fill(
-            child: IgnorePointer(
-              ignoring: !isSelected,
-              child: ExcludeSemantics(
-                excluding: !isSelected,
-                child: AnimatedOpacity(
-                  opacity: isSelected ? 1 : 0,
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  child: AnimatedSlide(
-                    offset: isSelected ? Offset.zero : const Offset(0, 0.008),
-                    duration: const Duration(milliseconds: 260),
+            return Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !isSelected,
+                child: ExcludeSemantics(
+                  excluding: !isSelected,
+                  child: AnimatedOpacity(
+                    opacity: isSelected ? 1 : 0,
+                    duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOutCubic,
-                    child: tabs[index],
+                    child: AnimatedSlide(
+                      offset: isSelected ? Offset.zero : const Offset(0, 0.008),
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutCubic,
+                      child: tabs[index],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
-      ),
-      bottomNavigationBar: _MeetchaBottomNavigation(
-        selectedIndex: _index,
-        onChanged: _selectTab,
+            );
+          }),
+        ),
+        bottomNavigationBar: _MeetchaBottomNavigation(
+          selectedIndex: _index,
+          onChanged: _selectTab,
+        ),
       ),
     );
   }
