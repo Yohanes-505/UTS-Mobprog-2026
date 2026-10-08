@@ -1,7 +1,7 @@
 import 'package:Meetcha/constants/app_colors.dart';
 import 'package:Meetcha/controllers/profile_controller.dart';
 import 'package:Meetcha/models/profile_model.dart';
-import 'package:Meetcha/screens/match_screen.dart';
+import 'package:Meetcha/screens/notifications_screen.dart';
 import 'package:Meetcha/screens/subscription_screen.dart';
 import 'package:Meetcha/services/block_service.dart';
 import 'package:Meetcha/services/profile_service.dart';
@@ -376,9 +376,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openMatches() {
+  /// lonceng di home
+  void _openNotifications() {
     Navigator.of(context)
-        .push(CupertinoPageRoute(builder: (_) => const MatchChatScreen()));
+        .push(CupertinoPageRoute(builder: (_) => const NotificationsScreen()));
   }
 
   @override
@@ -396,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: widget.mode == HomeViewMode.single
                       ? 'Suggested'
                       : 'Daily Brew',
-                  onNotificationTap: _openMatches,
+                  onNotificationTap: _openNotifications,
                 ),
                 Expanded(
                   child: AnimatedSwitcher(
@@ -531,7 +532,7 @@ class _HomeHeader extends StatelessWidget {
           const SizedBox(width: 8),
           _HeaderButton(
             icon: Icons.notifications_none_rounded,
-            tooltip: 'Match & Pesan',
+            tooltip: 'Notifikasi',
             onTap: onNotificationTap,
           ),
         ],
