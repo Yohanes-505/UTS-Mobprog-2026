@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/app_colors.dart';
 import '../../services/gift_service.dart';
+import '../../services/match_chat_service.dart';
 
 class GiftShopScreen extends StatefulWidget {
   final String? receiverId;
@@ -70,6 +71,23 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
 
     final receiverId = widget.receiverId ?? _supabase.auth.currentUser!.id;
     final result = await _giftService.sendGiftToUser(giftId, receiverId);
+
+    if (result['success'] == true && widget.receiverId != null) {
+      try {
+        final giftRow = await _supabase
+            .from('gifts')
+            .select('name')
+            .eq('id', giftId)
+            .maybeSingle();
+
+        await const MatchChatService().sendGiftMessage(
+          otherId: widget.receiverId!,
+          giftName: giftRow?['name']?.toString() ?? 'Gift',
+        );
+      } catch (e) {
+        debugPrint('Gagal mengirim pesan gift ke chat: $e');
+      }
+    }
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result['message'])),
