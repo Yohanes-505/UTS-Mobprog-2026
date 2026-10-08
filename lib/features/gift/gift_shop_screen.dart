@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/app_colors.dart';
 import '../../services/gift_service.dart';
 import '../../services/match_chat_service.dart';
+import 'package:get/get.dart';
+import '../../screens/topup_screen.dart';
 
 class GiftShopScreen extends StatefulWidget {
   final String? receiverId;
@@ -62,10 +64,37 @@ class _GiftShopScreenState extends State<GiftShopScreen> {
     // Konversi harga gift ke int secara aman
     int price = num.tryParse(priceDynamic.toString())?.toInt() ?? 0;
 
+        // Cek saldo terlebih dahulu; kalau kurang, tawarkan top up
     if (_userBalance < price) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saldo utama tidak cukup!')),
+      final shortfall = price - _userBalance;
+
+      final wantsTopUp = await Get.dialog<bool>(
+        AlertDialog(
+          title: const Text('Saldo Tidak Cukup'),
+          content: Text(
+            'Saldo kamu Rp $_userBalance, dibutuhkan Rp $price. '
+            'Kurang Rp $shortfall. Mau top up sekarang?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: const Text('Nanti'),
+            ),
+            TextButton(
+              onPressed: () => Get.back(result: true),
+              child: const Text('Top Up'),
+            ),
+          ],
+        ),
       );
+
+      if (wantsTopUp == true) {
+        final topUpDone = await Get.to<bool>(() => const TopUpScreen());
+
+        if (topUpDone == true) {
+          await _fetchData(); // muat ulang saldo setelah top up
+        }
+      }
       return;
     }
 
